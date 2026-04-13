@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Prediksi Win Probability tim Valorant berdasarkan komposisi agent menggunakan Jaringan Saraf Tiruan (JST).">
+    <link rel="stylesheet" href="style.css">
+    <title>Valorant Win Probability</title>
+</head>
+
+<body>
+    <main class="container">
+
+        <!-- ===== HEADER ===== -->
+        <section class="logo">
+            <img src="src/logo_valorant.png" alt="Valorant Logo">
+            <p>Win Probability Predictor</p>
+        </section>
+
+        <section class="content">
+
+            <!-- ===== AGENT PICKER ===== -->
+            <div class="topSection">
+                <p>Pilih Agent</p>
+                <div class="Agent" id="Agent"></div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <!-- ===== FORM + OUTPUT ===== -->
+            <div class="bottomSection">
+
+                <!-- Form Team / Map / Prediksi -->
+                <div class="bottomForm">
+                    <div class="Team">
+                        <p>Pilih Team</p>
+                        <select title="Team_Option" name="Team_Option" id="team" required>
+                            <option value="" hidden>— Pilih Tim —</option>
+                        </select>
+                    </div>
+
+                    <div class="Map">
+                        <p>Pilih Map</p>
+                        <select title="Map_Option" name="Map_Option" id="map" required>
+                            <option value="" hidden>— Pilih Map —</option>
+                        </select>
+                    </div>
+
+                    <div class="button">
+                        <button name="Predict" type="button">Prediksi</button>
+                    </div>
+                </div>
+
+                <!-- Ringkasan Pilihan -->
+                <div class="inputPick">
+                    <div class="teamPick">
+                        <p>Team Dipilih</p>
+                        <p id="namaTeam">—</p>
+                    </div>
+                    <div class="mapPick">
+                        <p>Map Dipilih</p>
+                        <p id="namaMap">—</p>
+                    </div>
+                    <div class="agentPick">
+                        <p>Agent Dipilih</p>
+                        <p id="namaAgent">—</p>
+                    </div>
+                </div>
+
+                <!-- Hasil Prediksi -->
+                <div class="outputPredict">
+                    <div class="outputContent">
+                        <div class="top-outputContent">
+                            <p>Win Probability</p>
+                            <p class="output-p" id="pred">—</p>
+                            <p>Final Win Probability</p>
+                            <p class="output-p" id="adjusted_pred">—</p>
+                            <p>Komposisi Role</p>
+                            <p class="output-p" id="comp_desc">—</p>
+                            <p id="sim_score_info">Skor Kecocokan Historis</p>
+                            <p class="output-p" id="sim_score">—</p>
+                        </div>
+                        <p id="kombinasi_agent_info">Kombinasi Terbaik Tim pada Map</p>
+                        <p class="output-p" id="most_common_combo">—</p>
+                        <p>Last data update : 2025</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ===== LOADING ===== -->
+        <div id="overlay" class="loadingOverlay"></div>
+        <div id="loading" class="loadingPopup">
+            <span class="loader"></span>
+            <p>Menghitung Prediksi...</p>
+        </div>
+
+        <!-- ===== ERROR POPUP ===== -->
+        <div id="errorOverlay" class="errorOverlay" onclick="closeErrorPopup()"></div>
+        <div id="errorPopup" class="errorPopup">
+            <div class="errorIcon">⚠️</div>
+            <h2 class="errorTitle">Input Tidak Lengkap</h2>
+            <p class="errorMessage" id="errorMessage"></p>
+            <button class="errorCloseBtn" onclick="closeErrorPopup()">Mengerti</button>
+        </div>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
