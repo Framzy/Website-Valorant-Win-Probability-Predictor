@@ -5,11 +5,12 @@ import random
 import tensorflow as tf
 import joblib
 from sklearn.preprocessing import OneHotEncoder, MultiLabelBinarizer, StandardScaler
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import mean_absolute_error
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Input, Dense, Dropout, BatchNormalization
-from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.regularizers import l2
 from collections import defaultdict
 
 # Set seed
@@ -20,8 +21,6 @@ tf.random.set_seed(42)
 # Load data
 print("[INFO] Loading data...")
 df = pd.read_csv("valorant_dataset_all.csv")
-df["Total Played"] = df["Total Wins By Map"] + df["Total Loss By Map"]
-df = df[df["Total Played"] >= 5].reset_index(drop=True)
 
 # Agent-role mapping
 AGENT_ROLE_MAP = {
@@ -49,9 +48,25 @@ df_grouped = df.groupby(group_cols).agg({
     "Total Wins By Map": "first",
     "Total Loss By Map": "first"
 }).reset_index()
-df_grouped["Winrate"] = df_grouped["Total Wins By Map"] / (
-    df_grouped["Total Wins By Map"] + df_grouped["Total Loss By Map"])
-    
+
+# Filter: hanya match dengan tepat 5 agent (komposisi valid)
+df_grouped["agent_count"] = df_grouped["Agent"].apply(len)
+print(f"[INFO] Before agent filter: {len(df_grouped)} matches")
+df_grouped = df_grouped[df_grouped["agent_count"] == 5].reset_index(drop=True)
+print(f"[INFO] After agent filter (==5): {len(df_grouped)} matches")
+
+# Filter: total played >= 5
+df_grouped["Total Played"] = df_grouped["Total Wins By Map"] + df_grouped["Total Loss By Map"]
+df_grouped = df_grouped[df_grouped["Total Played"] >= 5].reset_index(drop=True)
+print(f"[INFO] After total played filter (>=5): {len(df_grouped)} matches")
+
+# Winrate target
+df_grouped["Winrate"] = df_grouped["Total Wins By Map"] / df_grouped["Total Played"]
+
+# === FITUR BARU: Team overall winrate ===
+team_wr = df_grouped.groupby("Team")["Winrate"].mean().to_dict()
+df_grouped["team_overall_wr"] = df_grouped["Team"].map(team_wr)
+
 # Role historis tim
 tim_role_hist = df_grouped.groupby("Team")["Agent"].apply(
     lambda rows: np.mean([get_role_vector(ag) for ag in rows], axis=0)).to_dict()
@@ -68,46 +83,115 @@ agent_matrix = mlb.fit_transform(df_grouped["Agent"])
 # Role matrix
 role_matrix = np.vstack(df_grouped["Agent"].apply(get_role_vector))
 
-# Cosine similarity
+# Cosine similarity (dengan fallback konsisten [0.25]*4)
 def cosine_sim(a, b):
-    a = np.array(a)
-    b = np.array(b)
+    a = np.array(a, dtype=np.float64)
+    b = np.array(b, dtype=np.float64)
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-8)
 
-role_sim_scores = [cosine_sim(get_role_vector(row["Agent"]), tim_role_hist.get(row["Team"], [1.25]*4))
+role_sim_scores = [cosine_sim(get_role_vector(row["Agent"]), tim_role_hist.get(row["Team"], [0.25]*4))
                    for _, row in df_grouped.iterrows()]
 role_sim_scores = np.array(role_sim_scores).reshape(-1, 1)
+
+# Fitur tambahan
+team_overall_wr = df_grouped["team_overall_wr"].values.reshape(-1, 1)
+total_played = df_grouped["Total Played"].values.reshape(-1, 1)
 
 # Gabung fitur
 X_raw = np.hstack([team_encoded, map_encoded, agent_matrix]).astype(np.float32)
 role_scaler = StandardScaler()
 role_scaled = role_scaler.fit_transform(role_matrix)
-X = np.hstack([X_raw, role_scaled, role_sim_scores])
+
+# Extra features scaler
+extra_features = np.hstack([team_overall_wr, total_played])
+extra_scaler = StandardScaler()
+extra_scaled = extra_scaler.fit_transform(extra_features)
+
+X = np.hstack([X_raw, role_scaled, role_sim_scores, extra_scaled]).astype(np.float32)
 y = df_grouped["Winrate"].values.astype(np.float32)
 
-# Train model
+print(f"[INFO] Feature matrix shape: {X.shape}")
+print(f"[INFO] Target shape: {y.shape}")
+print(f"[INFO] Sample:Feature ratio = {X.shape[0]}:{X.shape[1]} = {X.shape[0]/X.shape[1]:.2f}:1")
+
+# === 5-Fold Cross Validation untuk evaluasi reliable ===
+print("\n[INFO] Running 5-Fold Cross Validation...")
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+cv_mae_scores = []
+
+for fold, (train_idx, val_idx) in enumerate(kf.split(X)):
+    X_cv_train, X_cv_val = X[train_idx], X[val_idx]
+    y_cv_train, y_cv_val = y[train_idx], y[val_idx]
+    
+    cv_model = Sequential([
+        Input(shape=(X.shape[1],)),
+        Dense(32, activation="relu", kernel_regularizer=l2(0.01)),
+        BatchNormalization(),
+        Dropout(0.3),
+        Dense(16, activation="relu", kernel_regularizer=l2(0.01)),
+        Dropout(0.2),
+        Dense(1, activation="sigmoid")
+    ])
+    cv_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+                     loss="mse", metrics=["mae"])
+    cv_model.fit(X_cv_train, y_cv_train, epochs=300, batch_size=8,
+                 validation_data=(X_cv_val, y_cv_val),
+                 callbacks=[EarlyStopping(monitor="val_loss", patience=20, restore_best_weights=True)],
+                 verbose=0)
+    
+    y_cv_pred = cv_model.predict(X_cv_val, verbose=0).flatten()
+    fold_mae = mean_absolute_error(y_cv_val, y_cv_pred)
+    cv_mae_scores.append(fold_mae)
+    print(f"  Fold {fold+1}: MAE = {fold_mae:.4f}")
+
+print(f"\n[INFO] 5-Fold CV MAE: {np.mean(cv_mae_scores):.4f} +/- {np.std(cv_mae_scores):.4f}")
+
+# === Train final model on all data with validation split ===
+print("\n[INFO] Training final model...")
 Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, random_state=42)
+
 model = Sequential([
     Input(shape=(X.shape[1],)),
-    Dense(256, activation="relu"), BatchNormalization(), Dropout(0.4),
-    Dense(128, activation="relu"), Dropout(0.3),
-    Dense(64, activation="relu"), Dropout(0.2),
-    Dense(1, activation="linear")
+    Dense(32, activation="relu", kernel_regularizer=l2(0.01)),
+    BatchNormalization(),
+    Dropout(0.3),
+    Dense(16, activation="relu", kernel_regularizer=l2(0.01)),
+    Dropout(0.2),
+    Dense(1, activation="sigmoid")
 ])
-model.compile(optimizer="adam", loss="mse", metrics=["mae"])
-es = EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
-model.fit(Xtr, ytr, validation_split=0.15, epochs=150, batch_size=16, callbacks=[es], verbose=1)
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+    loss="mse",
+    metrics=["mae"]
+)
+
+es = EarlyStopping(monitor="val_loss", patience=20, restore_best_weights=True)
+lr_scheduler = ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=8, min_lr=1e-5, verbose=1)
+
+model.fit(Xtr, ytr, validation_split=0.15, epochs=300, batch_size=8,
+          callbacks=[es, lr_scheduler], verbose=1)
 
 # Evaluasi
-print("[INFO] Evaluating model...")
-y_pred = model.predict(Xte).flatten()
-print(f"[INFO] MAE test: {mean_absolute_error(yte, y_pred):.4f}")
+print("\n[INFO] Evaluating model...")
+y_pred = model.predict(Xte, verbose=0).flatten()
+test_mae = mean_absolute_error(yte, y_pred)
+print(f"[INFO] MAE test: {test_mae:.4f}")
+print(f"[INFO] Prediction range: [{y_pred.min():.4f}, {y_pred.max():.4f}]")
+print(f"[INFO] Actual range:     [{yte.min():.4f}, {yte.max():.4f}]")
+
+# Count tim per data historis (untuk confidence calculation nanti)
+team_sample_count = df_grouped["Team"].value_counts().to_dict()
 
 # Save
+print("\n[INFO] Saving model and artifacts...")
 model.save("jst_model.keras")
 joblib.dump(role_scaler, "role_scaler.pkl")
+joblib.dump(extra_scaler, "extra_scaler.pkl")
 joblib.dump(team_ohe, "team_ohe.pkl")
 joblib.dump(map_ohe, "map_ohe.pkl")
 joblib.dump(mlb, "mlb.pkl")
 joblib.dump(tim_role_hist, "role_mean_dict.pkl")
 joblib.dump(AGENT_ROLE_MAP, "agent_role_map.pkl")
+joblib.dump(team_wr, "team_wr_dict.pkl")
+joblib.dump(team_sample_count, "team_sample_count.pkl")
+print("[INFO] Done! All artifacts saved.")

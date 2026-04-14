@@ -141,6 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("adjusted_pred").innerText = "...";
       document.getElementById("comp_desc").innerText = "Memproses...";
       document.getElementById("sim_score").innerText = "...";
+      document.getElementById("confidence").innerText = "...";
       document.getElementById("most_common_combo").innerText = "...";
 
       // Judul info
@@ -171,9 +172,10 @@ document.addEventListener("DOMContentLoaded", () => {
         adjEl.innerText =
           result.pred === result.adjusted_pred
             ? `${result.adjusted_pred}%`
-            : `${result.adjusted_pred}% (Penalti)`;
+            : `${result.adjusted_pred}% (Moderated)`;
         document.getElementById("comp_desc").innerText = result.comp_desc;
         document.getElementById("sim_score").innerText = `${result.sim_score}%`;
+        document.getElementById("confidence").innerText = `${result.confidence}%`;
         document.getElementById("most_common_combo").innerText =
           result.most_common_combo;
       } else {
@@ -181,3 +183,5 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 });
+
+
