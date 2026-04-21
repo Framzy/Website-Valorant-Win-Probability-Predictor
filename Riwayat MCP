@@ -1,0 +1,13 @@
+"Lanjutkan improvement fitur untuk projek JST Valorant Win Probability, sebelumnya kita sudah improve model dan logika"
+
+okay saya rasa karena data yang dimiliki tidak terlalu banyak membuat persentase masih sering tidak konsisten, saya punya ide lain. bagaimana menurut anda jika kita mengganti dari angka persentase menjadi warna semi circle dari gradasi warna merah ke hijau, jadi meminimalisir kerancuan dari angak misal jika angka persentase terlalu besar 70% atau lebih itu tida terlalu masuk akal karean masih banyak faktor lain lain namun jika warna misal hijau maka cukup persenase menag besar, akan teatpi kita bisa tetap keep angak persen dari raw, kepercayaan dan kecocokannya. bagaiaman jiak begini
+
+oke kita bisa jalankan saran anda nanti saya kana meminta anda menjalankan ide saya yang lain. 1. cob realisasikan dulu baru kita review kembali. 2. coba semi-cirlce dulu. 3. untuk saat ini cukup warna tersebut karean saya tidak ingin banyak warna, mungkin jika ingin tambahan bisa gunakan ubah tingkat kecerahannya
+
+
+
+1. jika agent dari suatu tim berbeda dalam role yang sama
+maka ada minor penalti agar bisa sesaui angak persentase bisa lebih akurat
+
+2. probabliti umum, berdasrakan agent paling sering di pick dalam map oleh seluruh 
+tim jadi terdapat 2 variabel saja agent dan tim , jadi kita perlu train data lagi dengan menggabungakn data dari tim pada setiap map

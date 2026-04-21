@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from predict import (
     prepare_input, describe_composition, model,
-    calculate_penalty, calculate_confidence, moderate_prediction,
+    calculate_penalty_details, calculate_confidence, moderate_prediction,
     AGENT_ROLE_MAP, role_mean_dict, ROLE_ORDER
 )
 import numpy as np
@@ -50,11 +50,11 @@ def predict():
     pred = np.clip(pred, 0, 1)
 
     # Penalti terpusat (dari predict.py — SATU SUMBER KEBENARAN)
-    penalty = calculate_penalty(role_vec)
+    penalty, penalty_details = calculate_penalty_details(role_vec)
     adj = np.clip(pred - penalty, 0, 1)
     
     # Moderasi output berdasarkan confidence
-    confidence = calculate_confidence(team, sim_score)
+    confidence = calculate_confidence(team, map_, sim_score)
     moderated = moderate_prediction(adj, confidence)
     
     comp = describe_composition(role_vec)
@@ -87,7 +87,9 @@ def predict():
         comp_desc=comp,
         sim_score=round(sim_score*100, 2),
         confidence=round(confidence*100, 2),
-        most_common_combo=most_common_combo
+        most_common_combo=most_common_combo,
+        penalty_details=penalty_details,
+        total_penalty=round(penalty*100, 2)
     )
     
 

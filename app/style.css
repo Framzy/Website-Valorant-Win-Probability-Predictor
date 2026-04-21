@@ -1,5 +1,5 @@
 /* ============================================
-   VALORANT WIN PROBABILITY — PREMIUM STYLE
+   VALORANT WIN PROBABILITY — PREMIUM STYLE v2
    ============================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
@@ -15,6 +15,9 @@
     --red:        #FF4655;
     --red-dark:   #c0192a;
     --red-glow:   rgba(255, 70, 85, 0.35);
+    --red-10:     rgba(255, 70, 85, 0.10);
+    --red-20:     rgba(255, 70, 85, 0.20);
+    --red-06:     rgba(255, 70, 85, 0.06);
     --bg-deep:    #0d1b26;
     --bg-main:    #111f2d;
     --bg-card:    #162432;
@@ -62,7 +65,7 @@ main {
     border-radius: 24px;
     border: 1px solid var(--border);
     box-shadow:
-        0 0 0 1px rgba(255,70,85,0.06),
+        0 0 0 1px var(--red-06),
         0 24px 80px rgba(0,0,0,0.6),
         0 0 60px rgba(255,70,85,0.04);
     overflow: hidden;
@@ -138,20 +141,25 @@ main {
     padding: 0 0 8px 0;
 }
 
-.topSection > p {
+/* Agent Header (title + counter) */
+.agent-header {
+    text-align: center;
+    padding: 28px 24px 0;
+    position: relative;
+}
+
+.agent-header > p {
     font-family: 'Rajdhani', sans-serif;
     font-size: 13px;
     font-weight: 600;
     letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--text-secondary);
-    text-align: center;
-    padding: 28px 0 16px;
     position: relative;
+    display: inline-block;
 }
 
-/* Separator dekoratif setelah label */
-.topSection > p::after {
+.agent-header > p::after {
     content: '';
     display: block;
     width: 40px;
@@ -159,6 +167,63 @@ main {
     background: var(--red);
     margin: 8px auto 0;
     border-radius: 2px;
+}
+
+/* Agent Counter Badge */
+.agent-counter {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 5px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    transition: all 0.3s ease;
+}
+
+.agent-counter.complete {
+    color: var(--red);
+    border-color: var(--red-20);
+    background: var(--red-10);
+}
+
+/* ===== ROLE FILTER TABS ===== */
+.role-filter {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 24px 8px;
+    flex-wrap: wrap;
+}
+
+.role-tab {
+    padding: 6px 18px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-transform: capitalize;
+}
+
+.role-tab:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.role-tab.active {
+    border-color: var(--red);
+    color: var(--red);
+    background: var(--red-10);
+    box-shadow: 0 0 12px var(--red-06);
 }
 
 /* Agent grid */
@@ -182,8 +247,13 @@ main {
     position: relative;
     cursor: pointer;
     border: 2px solid transparent;
-    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease;
     overflow: hidden;
+}
+
+/* Agent hiding via role filter */
+.agent-item.role-hidden {
+    display: none;
 }
 
 /* Gradient overlay di bawah kartu agent */
@@ -199,7 +269,7 @@ main {
 
 .agent-item:hover {
     transform: translateY(-6px) scale(1.03);
-    box-shadow: 0 12px 28px rgba(0,0,0,0.5), 0 0 20px rgba(255,70,85,0.2);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.5), 0 0 20px var(--red-20);
     border-color: rgba(255,70,85,0.4);
 }
 
@@ -212,7 +282,7 @@ main {
         0 0 30px rgba(255,70,85,0.4);
 }
 
-/* Badge nomor urut seleksi */
+/* Badge checkmark */
 .agent-item.selected::after {
     content: '✓';
     position: absolute;
@@ -231,6 +301,43 @@ main {
     z-index: 3;
     line-height: 22px;
     text-align: center;
+}
+
+/* Role badge on agent card */
+.role-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 3;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.role-badge.duelist {
+    background: rgba(255, 70, 85, 0.75);
+    color: #fff;
+}
+
+.role-badge.initiator {
+    background: rgba(255, 70, 85, 0.50);
+    color: #ffd6d9;
+}
+
+.role-badge.controller {
+    background: rgba(255, 70, 85, 0.30);
+    color: #ffb3b8;
+}
+
+.role-badge.sentinel {
+    background: rgba(200, 50, 65, 0.65);
+    color: #ffe0e3;
 }
 
 /* Nama agent di bawah kartu */
@@ -271,20 +378,20 @@ main {
     gap: 20px;
 }
 
-/* Form baris (team + map + button) */
+/* Form baris (team + map + buttons) */
 .bottomSection .bottomForm {
     display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: flex-end;
-    gap: 32px;
+    gap: 24px;
     padding: 20px 24px;
     flex-wrap: wrap;
     background: rgba(255,255,255,0.025);
     border: 1px solid var(--border);
     border-radius: 16px;
     width: 100%;
-    max-width: 800px;
+    max-width: 900px;
 }
 
 .bottomForm p {
@@ -339,15 +446,15 @@ main {
     background-color: var(--bg-card);
 }
 
-/* Tombol prediksi */
-.button {
+/* Button group (Predict + Reset) */
+.button-group {
     display: flex;
-    justify-content: center;
+    gap: 10px;
     align-items: flex-end;
     padding-bottom: 2px;
 }
 
-.button button {
+.btn-predict {
     padding: 11px 32px;
     border-radius: 10px;
     border: none;
@@ -359,13 +466,13 @@ main {
     text-transform: uppercase;
     color: #fff;
     background: linear-gradient(135deg, #FF4655, #c0192a);
-    box-shadow: 0 4px 20px rgba(255,70,85,0.35);
+    box-shadow: 0 4px 20px var(--red-glow);
     transition: all 0.2s ease;
     position: relative;
     overflow: hidden;
 }
 
-.button button::before {
+.btn-predict::before {
     content: '';
     position: absolute;
     top: 0; left: 0;
@@ -375,25 +482,51 @@ main {
     transition: opacity 0.2s ease;
 }
 
-.button button:hover {
+.btn-predict:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 28px rgba(255,70,85,0.5);
     background: linear-gradient(135deg, #ff5f6d, #d41e30);
 }
 
-.button button:hover::before {
+.btn-predict:hover::before {
     opacity: 1;
 }
 
-.button button:active {
+.btn-predict:active {
     transform: translateY(0);
     box-shadow: 0 2px 10px rgba(255,70,85,0.3);
+}
+
+.btn-reset {
+    padding: 11px 20px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    background: transparent;
+    transition: all 0.2s ease;
+}
+
+.btn-reset:hover {
+    border-color: var(--red);
+    color: var(--red);
+    background: var(--red-10);
+    transform: translateY(-2px);
+}
+
+.btn-reset:active {
+    transform: translateY(0);
 }
 
 /* ===== INPUT PICKS SUMMARY ===== */
 .inputPick {
     width: 100%;
-    max-width: 800px;
+    max-width: 900px;
     display: flex;
     flex-direction: row;
     justify-content: center;
@@ -446,8 +579,17 @@ main {
 /* ===== OUTPUT / HASIL PREDIKSI ===== */
 .outputPredict {
     width: 100%;
-    max-width: 800px;
+    max-width: 900px;
     box-sizing: border-box;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.5s ease, max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.outputPredict.visible {
+    opacity: 1;
+    max-height: 2000px;
 }
 
 .outputContent {
@@ -462,73 +604,286 @@ main {
     flex-direction: column;
 }
 
-/* Grid stat utama */
-.top-outputContent {
+/* ===== GAUGE SECTION ===== */
+.gauge-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 20px 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.gauge-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.gauge-wrapper {
+    position: relative;
+    width: 220px;
+    height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.gauge-svg {
+    width: 220px;
+    height: 120px;
+}
+
+.gauge-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 14;
+    stroke-linecap: round;
+}
+
+/* Gauge arc — color set dynamically by JS interpolation (red→orange→green) */
+.gauge-fill {
+    fill: none;
+    stroke: var(--red);
+    stroke-width: 14;
+    stroke-linecap: round;
+    stroke-dasharray: 251.33;
+    stroke-dashoffset: 251.33;
+    transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.6s ease, filter 0.6s ease;
+    filter: drop-shadow(0 0 8px rgba(255, 70, 85, 0.5));
+}
+
+/* Center content: status label is now the focal point */
+.gauge-center {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+}
+
+.gauge-status {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--red);
+    line-height: 1.2;
+    transition: color 0.6s ease;
+    word-break: break-word;
+    white-space: normal;
+}
+
+.gauge-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: normal;
+    text-align: center;
+}
+
+/* ===== STAT CARDS ===== */
+.stat-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 20px;
+    border-right: 1px solid var(--border);
+    transition: background 0.2s ease;
+}
+
+.stat-card:last-child {
+    border-right: none;
+}
+
+.stat-card:hover {
+    background: rgba(255,255,255,0.02);
+}
+
+.stat-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--red-10);
+    border-radius: 10px;
+    border: 1px solid var(--red-06);
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.stat-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.stat-value {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--red);
+}
+
+/* ===== DETAIL ROW (Role + Penalty) ===== */
+.detail-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0;
-    padding: 0;
+    border-bottom: 1px solid var(--border);
 }
 
-/* Setiap sel stat */
-.top-outputContent p:nth-child(odd) {
+.detail-card {
+    padding: 18px 20px;
+    border-right: 1px solid var(--border);
+}
+
+.detail-card:last-child {
+    border-right: none;
+}
+
+.detail-title {
     font-family: 'Rajdhani', sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 1.5px;
     text-transform: uppercase;
     color: var(--text-muted);
-    padding: 16px 20px 4px;
-    height: auto;
-    border-bottom: 1px solid var(--border);
-    align-self: end;
+    margin-bottom: 8px;
 }
 
-.top-outputContent .output-p {
+.detail-value {
     font-family: 'Inter', sans-serif;
     font-size: 14px;
-    font-weight: 700;
-    color: var(--red);
-    padding: 4px 10px 16px;
-    height: auto;
-    border-bottom: 1px solid var(--border);
-    
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
-/* Baris bawah: kombinasi */
-.outputContent > p:not(.output-p) {
+/* Penalty list */
+.penalty-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.penalty-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(255, 70, 85, 0.08);
+    border: 1px solid rgba(255, 70, 85, 0.15);
+}
+
+.penalty-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.penalty-reason {
+    color: var(--text-secondary);
+    flex: 1;
+}
+
+.penalty-val {
+    font-weight: 700;
+    color: var(--red);
+    white-space: nowrap;
+}
+
+.penalty-none {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+}
+
+.penalty-ok {
+    color: var(--text-secondary);
+}
+
+/* ===== COMBO SECTION ===== */
+.combo-section {
+    padding: 18px 20px;
+}
+
+.combo-label {
     font-family: 'Rajdhani', sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 1.5px;
     text-transform: uppercase;
     color: var(--text-muted);
-    padding: 16px 20px 4px;
-    height: auto;
-    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
 }
 
-.outputContent > .output-p {
+.combo-value {
     font-family: 'Inter', sans-serif;
     font-size: 15px;
     font-weight: 600;
     color: var(--text-primary);
-    padding: 4px 20px 16px;
-    height: auto;
-    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
 }
 
-/* Last data update baris terakhir */
-.outputContent > p:last-child {
+.data-update {
     font-size: 10px;
     letter-spacing: 1px;
     color: var(--text-muted);
     font-family: 'Inter', sans-serif;
     font-weight: 400;
-    text-transform: none;
-    padding: 10px 20px;
     text-align: right;
-    border-bottom: none;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+}
+
+/* ===== STAGGERED REVEAL ANIMATION ===== */
+.reveal-item {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reveal-item.revealed {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* ===== LOADING OVERLAY ===== */
@@ -557,7 +912,7 @@ main {
     flex-direction: column;
     border-radius: 20px;
     gap: 20px;
-    box-shadow: 0 0 60px rgba(255,70,85,0.2), 0 24px 48px rgba(0,0,0,0.6);
+    box-shadow: 0 0 60px var(--red-20), 0 24px 48px rgba(0,0,0,0.6);
 }
 
 .loadingPopup p {
@@ -627,7 +982,7 @@ main {
     padding: 36px 44px;
     width: 340px;
     box-shadow:
-        0 0 60px rgba(255, 70, 85, 0.2),
+        0 0 60px var(--red-20),
         0 24px 60px rgba(0,0,0,0.7),
         inset 0 1px 0 rgba(255,255,255,0.06);
     opacity: 0;
@@ -680,7 +1035,7 @@ main {
     letter-spacing: 2px;
     text-transform: uppercase;
     cursor: pointer;
-    box-shadow: 0 4px 16px rgba(255,70,85,0.35);
+    box-shadow: 0 4px 16px var(--red-glow);
     transition: all 0.2s ease;
 }
 
@@ -710,6 +1065,34 @@ main {
 }
 
 /* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .stat-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .stat-card:last-child {
+        border-bottom: none;
+    }
+
+    .detail-row {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-card {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .detail-card:last-child {
+        border-bottom: none;
+    }
+}
+
 @media (max-width: 600px) {
     .container {
         width: 100vw;
@@ -723,16 +1106,12 @@ main {
     }
 
     .bottomSection .bottomForm {
-        gap: 20px;
+        gap: 16px;
         padding: 16px;
     }
 
     .bottomForm select {
         width: 160px;
-    }
-
-    .top-outputContent {
-        grid-template-columns: 1fr;
     }
 
     .inputPick > div {
@@ -744,5 +1123,29 @@ main {
     .errorPopup {
         width: 90vw;
         padding: 28px 24px;
+    }
+
+    .gauge-wrapper {
+        width: 180px;
+        height: 120px;
+    }
+
+    .gauge-svg {
+        width: 180px;
+        height: 100px;
+    }
+
+    .gauge-value {
+        font-size: 36px;
+    }
+
+    .button-group {
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .btn-predict, .btn-reset {
+        width: 100%;
     }
 }

@@ -22,7 +22,20 @@
 
             <!-- ===== AGENT PICKER ===== -->
             <div class="topSection">
-                <p>Pilih Agent</p>
+                <div class="agent-header">
+                    <p>Pilih Agent</p>
+                    <span class="agent-counter" id="agentCounter">0 / 5 Agent Dipilih</span>
+                </div>
+
+                <!-- Role Filter Tabs -->
+                <div class="role-filter" id="roleFilter">
+                    <button class="role-tab active" data-role="all">Semua</button>
+                    <button class="role-tab" data-role="duelist">Duelist</button>
+                    <button class="role-tab" data-role="initiator">Initiator</button>
+                    <button class="role-tab" data-role="controller">Controller</button>
+                    <button class="role-tab" data-role="sentinel">Sentinel</button>
+                </div>
+
                 <div class="Agent" id="Agent"></div>
             </div>
 
@@ -47,8 +60,9 @@
                         </select>
                     </div>
 
-                    <div class="button">
-                        <button name="Predict" type="button">Prediksi</button>
+                    <div class="button-group">
+                        <button name="Predict" type="button" class="btn-predict" id="btnPredict">Prediksi</button>
+                        <button type="button" class="btn-reset" id="btnReset">Reset</button>
                     </div>
                 </div>
 
@@ -68,24 +82,73 @@
                     </div>
                 </div>
 
-                <!-- Hasil Prediksi -->
-                <div class="outputPredict">
+                <!-- ===== HASIL PREDIKSI (hidden until first prediction) ===== -->
+                <div class="outputPredict" id="outputPredict">
                     <div class="outputContent">
-                        <div class="top-outputContent">
-                            <p>Win Probability</p>
-                            <p class="output-p" id="pred">—</p>
-                            <p>Final Win Probability</p>
-                            <p class="output-p" id="adjusted_pred">—</p>
-                            <p>Komposisi Role</p>
-                            <p class="output-p" id="comp_desc">—</p>
-                            <p id="sim_score_info">Skor Kecocokan Historis</p>
-                            <p class="output-p" id="sim_score">—</p>
-                            <p>Tingkat Kepercayaan Prediksi</p>
-                            <p class="output-p" id="confidence">—</p>
+
+                        <!-- Gauge Section -->
+                        <div class="gauge-section" id="gaugeSection">
+                            <p class="gauge-label">Final Win Probability</p>
+                            <div class="gauge-wrapper">
+                                <svg class="gauge-svg" viewBox="0 0 200 120" id="gaugeSvg">
+                                    <!-- Background arc -->
+                                    <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
+                                    <!-- Value arc (animated, color set by JS) -->
+                                    <path class="gauge-fill" id="gaugeFill" d="M 20 100 A 80 80 0 0 1 180 100" />
+                                </svg>
+                                <div class="gauge-center">
+                                    <span class="gauge-status" id="gaugeStatus">—</span>
+                                    <span class="gauge-sub" id="gaugeSubText">Pilih dan prediksi</span>
+                                </div>
+                            </div>
                         </div>
-                        <p id="kombinasi_agent_info">Kombinasi Terbaik Tim pada Map</p>
-                        <p class="output-p" id="most_common_combo">—</p>
-                        <p>Last data update : 2025</p>
+
+                        <!-- Stat Cards Row -->
+                        <div class="stat-cards" id="statCards">
+                            <div class="stat-card reveal-item">
+                                <div class="stat-icon">📊</div>
+                                <div class="stat-info">
+                                    <span class="stat-label">Raw Probability</span>
+                                    <span class="stat-value" id="pred">—</span>
+                                </div>
+                            </div>
+                            <div class="stat-card reveal-item">
+                                <div class="stat-icon">🎯</div>
+                                <div class="stat-info">
+                                    <span class="stat-label">Tingkat Kepercayaan</span>
+                                    <span class="stat-value" id="confidence">—</span>
+                                </div>
+                            </div>
+                            <div class="stat-card reveal-item">
+                                <div class="stat-icon">🔗</div>
+                                <div class="stat-info">
+                                    <span class="stat-label" id="sim_score_info">Skor Kecocokan Historis</span>
+                                    <span class="stat-value" id="sim_score">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Role Composition & Penalty Row -->
+                        <div class="detail-row" id="detailRow">
+                            <div class="detail-card reveal-item">
+                                <p class="detail-title">Komposisi Role</p>
+                                <p class="detail-value" id="comp_desc">—</p>
+                            </div>
+                            <div class="detail-card reveal-item">
+                                <p class="detail-title">Penyesuaian Penalti</p>
+                                <div class="penalty-list" id="penaltyList">
+                                    <p class="penalty-none">—</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Best Combo Row -->
+                        <div class="combo-section reveal-item" id="comboSection">
+                            <p class="combo-label" id="kombinasi_agent_info">Kombinasi Terbaik Tim pada Map</p>
+                            <p class="combo-value" id="most_common_combo">—</p>
+                            <p class="data-update">Last data update : 2025</p>
+                        </div>
+
                     </div>
                 </div>
 

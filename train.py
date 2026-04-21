@@ -67,7 +67,13 @@ df_grouped["Winrate"] = df_grouped["Total Wins By Map"] / df_grouped["Total Play
 team_wr = df_grouped.groupby("Team")["Winrate"].mean().to_dict()
 df_grouped["team_overall_wr"] = df_grouped["Team"].map(team_wr)
 
-# Role historis tim
+# === Role historis per TIM+MAP (lebih akurat dari per-Tim saja) ===
+# Key: ("Team Name", "Map Name") → rata-rata role vector
+tim_map_role_hist = df_grouped.groupby(["Team", "Map"]).apply(
+    lambda rows: np.mean([get_role_vector(ag) for ag in rows["Agent"]], axis=0)
+).to_dict()
+
+# Fallback: per-Tim saja (dipakai jika kombinasi Tim+Map tidak ada di data)
 tim_role_hist = df_grouped.groupby("Team")["Agent"].apply(
     lambda rows: np.mean([get_role_vector(ag) for ag in rows], axis=0)).to_dict()
 
@@ -83,13 +89,20 @@ agent_matrix = mlb.fit_transform(df_grouped["Agent"])
 # Role matrix
 role_matrix = np.vstack(df_grouped["Agent"].apply(get_role_vector))
 
-# Cosine similarity (dengan fallback konsisten [0.25]*4)
+# Cosine similarity — gunakan Tim+Map key, fallback ke Tim saja
 def cosine_sim(a, b):
     a = np.array(a, dtype=np.float64)
     b = np.array(b, dtype=np.float64)
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-8)
 
-role_sim_scores = [cosine_sim(get_role_vector(row["Agent"]), tim_role_hist.get(row["Team"], [0.25]*4))
+def get_role_ref(team, map_name):
+    """Ambil referensi role historis: Tim+Map dulu, fallback ke Tim."""
+    key = (team, map_name)
+    if key in tim_map_role_hist:
+        return tim_map_role_hist[key]
+    return tim_role_hist.get(team, [0.25]*4)
+
+role_sim_scores = [cosine_sim(get_role_vector(row["Agent"]), get_role_ref(row["Team"], row["Map"]))
                    for _, row in df_grouped.iterrows()]
 role_sim_scores = np.array(role_sim_scores).reshape(-1, 1)
 
@@ -191,6 +204,7 @@ joblib.dump(team_ohe, "team_ohe.pkl")
 joblib.dump(map_ohe, "map_ohe.pkl")
 joblib.dump(mlb, "mlb.pkl")
 joblib.dump(tim_role_hist, "role_mean_dict.pkl")
+joblib.dump(tim_map_role_hist, "role_map_mean_dict.pkl")  # NEW: per Tim+Map
 joblib.dump(AGENT_ROLE_MAP, "agent_role_map.pkl")
 joblib.dump(team_wr, "team_wr_dict.pkl")
 joblib.dump(team_sample_count, "team_sample_count.pkl")

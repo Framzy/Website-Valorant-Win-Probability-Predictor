@@ -11,7 +11,8 @@ team_ohe       = joblib.load("team_ohe.pkl")
 map_ohe        = joblib.load("map_ohe.pkl")
 mlb            = joblib.load("mlb.pkl")
 AGENT_ROLE_MAP = joblib.load("agent_role_map.pkl")
-role_mean_dict = joblib.load("role_mean_dict.pkl")
+role_mean_dict     = joblib.load("role_mean_dict.pkl")      # per-Tim (fallback)
+role_map_mean_dict = joblib.load("role_map_mean_dict.pkl")  # per-Tim+Map (akurat)
 team_wr_dict   = joblib.load("team_wr_dict.pkl")
 team_sample_count = joblib.load("team_sample_count.pkl")
 
@@ -33,45 +34,62 @@ def cosine_sim(a, b):
     b = np.array(b, dtype=np.float64)
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-8)
 
-def calculate_penalty(role_raw_vec):
+def calculate_penalty_details(role_raw_vec):
     """
     Hitung penalti untuk komposisi agent anomali.
+    Returns: (total_penalty, list of {reason, value} dicts)
     Digunakan di predict.py CLI dan app.py web — SATU SUMBER KEBENARAN.
     """
-    penalty = 0
+    details = []
     max_same_role = max(role_raw_vec)
+    
+    # Cari role dominan
+    dominant_role = ROLE_ORDER[role_raw_vec.tolist().index(max_same_role)] if hasattr(role_raw_vec, 'tolist') else ROLE_ORDER[list(role_raw_vec).index(max_same_role)]
     
     # Penalti progresif untuk role stacking (terlalu banyak role yang sama)
     if max_same_role == 3:
-        penalty += 0.10
+        details.append({"reason": f"3 agent role sama ({dominant_role})", "value": -10})
     elif max_same_role == 4:
-        penalty += 0.20
+        details.append({"reason": f"4 agent role sama ({dominant_role})", "value": -20})
     elif max_same_role == 5:
-        penalty += 0.35
+        details.append({"reason": f"5 agent role sama ({dominant_role})", "value": -35})
     
     # Penalti jika tidak ada controller (smoke sangat penting)
     if role_raw_vec[ROLE_ORDER.index("controller")] == 0:
-        penalty += 0.10
+        details.append({"reason": "Tidak ada controller (smoke)", "value": -10})
     
     # Penalti jika tidak ada initiator (info gathering penting)
     if role_raw_vec[ROLE_ORDER.index("initiator")] == 0:
-        penalty += 0.05
+        details.append({"reason": "Tidak ada initiator (info)", "value": -5})
     
-    return penalty
+    total = sum(d["value"] for d in details) / 100.0  # convert to 0-1 scale
+    return abs(total), details
 
-def calculate_confidence(team, sim_score):
+def calculate_penalty(role_raw_vec):
+    """Backward-compatible wrapper — returns only total penalty."""
+    total, _ = calculate_penalty_details(role_raw_vec)
+    return total
+
+def get_role_ref(team, map_name):
+    """Ambil referensi role historis: Tim+Map dulu, fallback ke Tim saja."""
+    key = (team, map_name)
+    if key in role_map_mean_dict:
+        return role_map_mean_dict[key]
+    return role_mean_dict.get(team, [0.25]*4)
+
+def calculate_confidence(team, map_name, sim_score):
     """
     Hitung confidence factor (0-1) berdasarkan:
     - Jumlah data historis tim
-    - Cosine similarity score
+    - Cosine similarity score (Tim+Map specific)
     """
-    # Berapa banyak data historis tim (max clamp di 12 karena tim terbanyak punya 12)
+    # Berapa banyak data historis tim (max clamp di 12)
     n_samples = team_sample_count.get(team, 0)
-    data_confidence = min(n_samples / 12.0, 1.0)  # 0-1
-    
+    data_confidence = min(n_samples / 12.0, 1.0)
+
     # Cosine similarity sebagai proxy kecocokan pola
-    sim_confidence = max(0, min(sim_score, 1.0))  # clamp 0-1
-    
+    sim_confidence = max(0, min(sim_score, 1.0))
+
     # Gabungkan: 60% data confidence, 40% similarity confidence
     confidence = 0.6 * data_confidence + 0.4 * sim_confidence
     return confidence
@@ -90,22 +108,22 @@ def prepare_input(team, map_name, agents):
     team_vec = team_ohe.transform(df[["Team"]])
     map_vec  = map_ohe.transform(df[["Map"]])
     agent_vec = mlb.transform([agents])
-    
+
     # Role vector — gunakan role_scaler (SAMA seperti training)
     role_raw = get_role_vector(agents)
     role_scaled = role_scaler.transform(role_raw.reshape(1, -1))
-    
-    # Cosine similarity — fallback KONSISTEN dengan training [0.25]*4
-    sim_score = cosine_sim(role_raw, role_mean_dict.get(team, [0.25]*4))
+
+    # Cosine similarity — gunakan Tim+Map reference (AKURAT, fallback ke Tim)
+    ref_vec = get_role_ref(team, map_name)
+    sim_score = cosine_sim(role_raw, ref_vec)
     sim_arr = np.array([[sim_score]])
-    
-    # Fitur tambahan: team overall winrate & total_played (estimasi)
-    team_wr = team_wr_dict.get(team, 0.5)  # default 50% jika tim tidak dikenal
-    # Untuk prediksi baru, kita tidak tahu total_played, gunakan median dari dataset (5)
+
+    # Fitur tambahan: team overall winrate & total_played (estimasi median)
+    team_wr = team_wr_dict.get(team, 0.5)
     total_played_est = 5.0
     extra_raw = np.array([[team_wr, total_played_est]])
     extra_scaled = extra_scaler.transform(extra_raw)
-    
+
     x = np.hstack([team_vec, map_vec, agent_vec, role_scaled, sim_arr, extra_scaled]).astype(np.float32)
     return x, role_raw, sim_score
 
@@ -137,7 +155,7 @@ if __name__ == "__main__":
         adjusted_pred = np.clip(pred - penalty, 0, 1)
         
         # Moderasi berdasarkan confidence
-        confidence = calculate_confidence(team, sim_score)
+        confidence = calculate_confidence(team, map_, sim_score)
         moderated_pred = moderate_prediction(adjusted_pred, confidence)
         
         comp_desc = describe_composition(role_raw_vec)

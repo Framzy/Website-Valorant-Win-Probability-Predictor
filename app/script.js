@@ -1,25 +1,23 @@
 const BASE = "http://127.0.0.1:5000";
 const maxChecked = 5;
 let checkedOrder = [];
+let agentDataCache = []; // store agent data for filtering
 
 async function loadData() {
-  // 1) Ambil data JSON
   const res = await fetch(`${BASE}/data.json`);
   const { teams, maps, agents } = await res.json();
+  agentDataCache = agents;
 
-  // 2) Populate team <select>
+  // Populate team <select>
   const teamSelect = document.getElementById("team");
   const nt = document.getElementById("namaTeam");
   teams.forEach((t) => {
     const opt = new Option(t, t);
     teamSelect.appendChild(opt);
   });
-  teamSelect.addEventListener(
-    "change",
-    () => (nt.innerText = teamSelect.value),
-  );
+  teamSelect.addEventListener("change", () => (nt.innerText = teamSelect.value));
 
-  // 3) Populate map <select>
+  // Populate map <select>
   const mapSelect = document.getElementById("map");
   const nm = document.getElementById("namaMap");
   maps.forEach((m) => {
@@ -28,132 +26,316 @@ async function loadData() {
   });
   mapSelect.addEventListener("change", () => (nm.innerText = mapSelect.value));
 
-  // 4) Generate kartu Agent sesuai CSS .agent-item
+  // Generate agent cards with role badges
   const agentContainer = document.getElementById("Agent");
   agents.forEach((a) => {
     const wrapper = document.createElement("div");
     wrapper.classList.add("agent-item");
     wrapper.dataset.name = a.name;
-
-    // atur background-image via inline style
+    wrapper.dataset.role = a.role;
     wrapper.style.backgroundImage = `url("${a.url}")`;
 
-    // judul nama agent
+    // Role badge
+    const badge = document.createElement("span");
+    badge.classList.add("role-badge", a.role);
+    badge.textContent = a.role.charAt(0).toUpperCase() + a.role.slice(1);
+    wrapper.appendChild(badge);
+
+    // Agent name
     const h1 = document.createElement("h1");
     h1.textContent = a.name.charAt(0).toUpperCase() + a.name.slice(1);
     wrapper.appendChild(h1);
 
-    // klik untuk select / unselect
+    // Click handler
     wrapper.addEventListener("click", () => toggleAgent(a.name, wrapper));
-
     agentContainer.appendChild(wrapper);
+  });
+
+  // Role filter tabs
+  setupRoleFilter();
+}
+
+// ===== Role Filter =====
+function setupRoleFilter() {
+  const tabs = document.querySelectorAll(".role-tab");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      // Update active tab
+      tabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+
+      const role = tab.dataset.role;
+      const items = document.querySelectorAll(".agent-item");
+
+      items.forEach((item) => {
+        if (role === "all" || item.dataset.role === role) {
+          item.classList.remove("role-hidden");
+        } else {
+          item.classList.add("role-hidden");
+        }
+      });
+    });
   });
 }
 
-// toggle border & daftar pilihan
+// ===== Toggle Agent Selection =====
 function toggleAgent(name, el) {
   const idx = checkedOrder.indexOf(name);
   if (idx > -1) {
-    // unselect
     checkedOrder.splice(idx, 1);
     el.classList.remove("selected");
   } else {
-    // select baru
     if (checkedOrder.length >= maxChecked) {
-      // hapus yang pertama
       const first = checkedOrder.shift();
-      const firstEl = document.querySelector(
-        `.agent-item[data-name="${first}"]`,
-      );
+      const firstEl = document.querySelector(`.agent-item[data-name="${first}"]`);
       firstEl.classList.remove("selected");
     }
     checkedOrder.push(name);
     el.classList.add("selected");
   }
   updateSelectedAgents();
+  updateAgentCounter();
 }
 
-// tampilkan daftar terpilih
 function updateSelectedAgents() {
-  document.getElementById("namaAgent").innerText = checkedOrder
-    .map((n) => n.charAt(0).toUpperCase() + n.slice(1))
-    .join(", ");
+  document.getElementById("namaAgent").innerText = checkedOrder.length
+    ? checkedOrder.map((n) => n.charAt(0).toUpperCase() + n.slice(1)).join(", ")
+    : "—";
 }
 
-// ===== Error Popup Functions =====
+function updateAgentCounter() {
+  const counter = document.getElementById("agentCounter");
+  counter.textContent = `${checkedOrder.length} / ${maxChecked} Agent Dipilih`;
+
+  if (checkedOrder.length === maxChecked) {
+    counter.classList.add("complete");
+  } else {
+    counter.classList.remove("complete");
+  }
+}
+
+// ===== Reset All =====
+function resetAll() {
+  // Reset agents
+  checkedOrder = [];
+  document.querySelectorAll(".agent-item.selected").forEach((el) => el.classList.remove("selected"));
+  updateSelectedAgents();
+  updateAgentCounter();
+
+  // Reset dropdowns
+  document.getElementById("team").value = "";
+  document.getElementById("map").value = "";
+  document.getElementById("namaTeam").innerText = "—";
+  document.getElementById("namaMap").innerText = "—";
+
+  // Reset role filter to "All"
+  const tabs = document.querySelectorAll(".role-tab");
+  tabs.forEach((t) => t.classList.remove("active"));
+  tabs[0].classList.add("active");
+  document.querySelectorAll(".agent-item").forEach((item) => item.classList.remove("role-hidden"));
+
+  // Hide output
+  const outputEl = document.getElementById("outputPredict");
+  outputEl.classList.remove("visible");
+
+  // Reset gauge
+  resetGauge();
+}
+
+// ===== Error Popup =====
 function showErrorPopup(message) {
   document.getElementById("errorMessage").innerText = message;
   const overlay = document.getElementById("errorOverlay");
-  const popup   = document.getElementById("errorPopup");
+  const popup = document.getElementById("errorPopup");
   overlay.style.display = "block";
-  popup.style.display   = "flex";
+  popup.style.display = "flex";
   requestAnimationFrame(() => popup.classList.add("show"));
 }
 
 function closeErrorPopup() {
   const overlay = document.getElementById("errorOverlay");
-  const popup   = document.getElementById("errorPopup");
+  const popup = document.getElementById("errorPopup");
   popup.classList.remove("show");
   setTimeout(() => {
     overlay.style.display = "none";
-    popup.style.display   = "none";
+    popup.style.display = "none";
   }, 250);
 }
 
+// ===== Gauge Color Interpolation (Red → Orange → Green) =====
+// Maps 0-100% → hue 0° (red) → 30° (orange) → 130° (green)
+function interpolateColor(pct) {
+  const stops = [
+    { pct:  0, h:   0, s: 75, l: 40 },   // deep red
+    { pct: 35, h:   5, s: 78, l: 45 },   // red
+    { pct: 50, h:  25, s: 80, l: 42 },   // orange
+    { pct: 65, h:  70, s: 60, l: 36 },   // yellow-green
+    { pct:100, h: 130, s: 58, l: 35 },   // green
+  ];
+
+  // clamp
+  const p = Math.max(0, Math.min(100, pct));
+
+  // find surrounding stops
+  let lo = stops[0], hi = stops[stops.length - 1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (p >= stops[i].pct && p <= stops[i + 1].pct) {
+      lo = stops[i];
+      hi = stops[i + 1];
+      break;
+    }
+  }
+
+  const t = lo.pct === hi.pct ? 0 : (p - lo.pct) / (hi.pct - lo.pct);
+  const h = lo.h + (hi.h - lo.h) * t;
+  const s = lo.s + (hi.s - lo.s) * t;
+  const l = lo.l + (hi.l - lo.l) * t;
+  return `hsl(${h.toFixed(1)}, ${s.toFixed(1)}%, ${l.toFixed(1)}%)`;
+}
+
+function getGaugeStatusText(pct) {
+  if (pct >= 65) return "Sangat Tinggi";
+  if (pct >= 55) return "Tinggi";
+  if (pct >= 45) return "Moderat";
+  if (pct >= 35) return "Rendah";
+  return "Sangat Rendah";
+}
+
+function getGaugeSubText(pct) {
+  if (pct >= 65) return "Peluang menang besar";
+  if (pct >= 55) return "Peluang menang tinggi";
+  if (pct >= 45) return "Peluang menang seimbang";
+  if (pct >= 35) return "Peluang menang rendah";
+  return "Peluang menang kecil";
+}
+
+// Semi-circle arc length = π * r = π * 80 ≈ 251.33
+const ARC_LENGTH = 251.33;
+
+function animateGauge(targetPct) {
+  const fill = document.getElementById("gaugeFill");
+  const statusEl = document.getElementById("gaugeStatus");
+  const subEl    = document.getElementById("gaugeSubText");
+
+  const pct = Math.max(0, Math.min(100, targetPct));
+
+  // Compute interpolated color
+  const color = interpolateColor(pct);
+
+  // Arc always goes FULL — only color communicates the level
+  fill.style.stroke = color;
+  fill.style.filter = `drop-shadow(0 0 10px ${color})`;
+  fill.style.strokeDashoffset = 0;   // ← always full semi-circle
+
+  // Update status text (allow natural line-wrap for long labels)
+  statusEl.textContent = getGaugeStatusText(pct);
+  statusEl.style.color = color;
+
+  // Update sub text
+  subEl.textContent = getGaugeSubText(pct);
+}
+
+function resetGauge() {
+  const fill = document.getElementById("gaugeFill");
+  const statusEl = document.getElementById("gaugeStatus");
+  const subEl    = document.getElementById("gaugeSubText");
+
+  fill.style.stroke = "var(--red)";
+  fill.style.filter = "drop-shadow(0 0 8px rgba(255, 70, 85, 0.5))";
+  fill.style.strokeDashoffset = ARC_LENGTH;
+
+  statusEl.textContent = "—";
+  statusEl.style.color = "";
+  subEl.textContent = "Pilih dan prediksi";
+}
+
+// ===== Staggered Reveal =====
+function revealResults() {
+  const items = document.querySelectorAll(".reveal-item");
+  items.forEach((item, i) => {
+    item.classList.remove("revealed");
+    setTimeout(() => item.classList.add("revealed"), 150 * i);
+  });
+}
+
+// ===== Render Penalty Details =====
+function renderPenaltyDetails(details) {
+  const list = document.getElementById("penaltyList");
+  list.innerHTML = "";
+
+  if (!details || details.length === 0) {
+    const okEl = document.createElement("p");
+    okEl.className = "penalty-none penalty-ok";
+    okEl.textContent = "✅ Komposisi seimbang — tidak ada penalti";
+    list.appendChild(okEl);
+    return;
+  }
+
+  details.forEach((d) => {
+    const item = document.createElement("div");
+    item.className = "penalty-item";
+
+    const icon = document.createElement("span");
+    icon.className = "penalty-icon";
+    icon.textContent = "⚠️";
+
+    const reason = document.createElement("span");
+    reason.className = "penalty-reason";
+    reason.textContent = d.reason;
+
+    const val = document.createElement("span");
+    val.className = "penalty-val";
+    val.textContent = `${d.value}%`;
+
+    item.appendChild(icon);
+    item.appendChild(reason);
+    item.appendChild(val);
+    list.appendChild(item);
+  });
+}
+
+// ===== Main DOMContentLoaded =====
 document.addEventListener("DOMContentLoaded", () => {
   loadData();
 
-  // tombol prediksi
-  document
-    .querySelector('button[name="Predict"]')
-    .addEventListener("click", async () => {
-      const team = document.getElementById("team").value;
-      const map  = document.getElementById("map").value;
+  // Predict button
+  document.getElementById("btnPredict").addEventListener("click", async () => {
+    const team = document.getElementById("team").value;
+    const map = document.getElementById("map").value;
 
-      // ===== VALIDASI INPUT =====
-      if (!team && !map && checkedOrder.length < 5) {
-        showErrorPopup("Silakan pilih Team, Map, dan 5 Agent sebelum melakukan prediksi.");
-        return;
-      }
-      if (!team) {
-        showErrorPopup("Team belum dipilih!\nSilakan pilih salah satu team terlebih dahulu.");
-        return;
-      }
-      if (!map) {
-        showErrorPopup("Map belum dipilih!\nSilakan pilih salah satu map terlebih dahulu.");
-        return;
-      }
-      if (checkedOrder.length < 5) {
-        showErrorPopup(`Agent yang dipilih masih kurang!\nDipilih: ${checkedOrder.length}/5 agent. Pilih ${5 - checkedOrder.length} agent lagi.`);
-        return;
-      }
-      // ==========================
+    // ===== VALIDASI INPUT =====
+    if (!team && !map && checkedOrder.length < 5) {
+      showErrorPopup("Silakan pilih Team, Map, dan 5 Agent sebelum melakukan prediksi.");
+      return;
+    }
+    if (!team) {
+      showErrorPopup("Team belum dipilih!\nSilakan pilih salah satu team terlebih dahulu.");
+      return;
+    }
+    if (!map) {
+      showErrorPopup("Map belum dipilih!\nSilakan pilih salah satu map terlebih dahulu.");
+      return;
+    }
+    if (checkedOrder.length < 5) {
+      showErrorPopup(`Agent yang dipilih masih kurang!\nDipilih: ${checkedOrder.length}/5 agent. Pilih ${5 - checkedOrder.length} agent lagi.`);
+      return;
+    }
 
+    // Show loading
+    const overlayEl = document.getElementById("overlay");
+    const loadingEl = document.getElementById("loading");
+    overlayEl.style.display = "block";
+    loadingEl.style.display = "flex";
 
-      // Tampilkan indikator loading
-      const overlayEl = document.getElementById("overlay");
-      const loadingEl = document.getElementById("loading");
-      overlayEl.style.display = "block";
-      loadingEl.style.display = "flex";
+    // Reset output state before new prediction
+    resetGauge();
+    document.querySelectorAll(".reveal-item").forEach((el) => el.classList.remove("revealed"));
 
-      // Kosongkan sementara hasil sebelumnya
-      document.getElementById("pred").innerText = "...";
-      document.getElementById("adjusted_pred").innerText = "...";
-      document.getElementById("comp_desc").innerText = "Memproses...";
-      document.getElementById("sim_score").innerText = "...";
-      document.getElementById("confidence").innerText = "...";
-      document.getElementById("most_common_combo").innerText = "...";
+    // Update info labels
+    document.getElementById("sim_score_info").innerText = `Kecocokan Dengan ${team}`;
+    document.getElementById("kombinasi_agent_info").innerText = `Kombinasi Terbaik ${team} Pada Map ${map}`;
 
-      // Judul info
-      document.getElementById("sim_score_info").innerText =
-        `Skor Kecocokan Dengan ${team} :`;
-      document.getElementById("kombinasi_agent_info").innerText =
-        `Kombinasi Terbaik Berdasarkan ${team} Pada Map ${map} :`;
-
-      // Jeda loading buatan
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Kirim permintaan
+    try {
       const response = await fetch(`${BASE}/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -162,26 +344,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const result = await response.json();
 
-      // Sembunyikan loading
+      // Hide loading
       overlayEl.style.display = "none";
       loadingEl.style.display = "none";
 
       if (response.ok) {
+        // Show output with animation
+        const outputEl = document.getElementById("outputPredict");
+        outputEl.classList.add("visible");
+
+        // Animate gauge
+        setTimeout(() => animateGauge(result.adjusted_pred), 200);
+
+        // Fill stat values
         document.getElementById("pred").innerText = `${result.pred}%`;
-        const adjEl = document.getElementById("adjusted_pred");
-        adjEl.innerText =
-          result.pred === result.adjusted_pred
-            ? `${result.adjusted_pred}%`
-            : `${result.adjusted_pred}% (Moderated)`;
-        document.getElementById("comp_desc").innerText = result.comp_desc;
-        document.getElementById("sim_score").innerText = `${result.sim_score}%`;
         document.getElementById("confidence").innerText = `${result.confidence}%`;
-        document.getElementById("most_common_combo").innerText =
-          result.most_common_combo;
+        document.getElementById("sim_score").innerText = `${result.sim_score}%`;
+        document.getElementById("comp_desc").innerText = result.comp_desc;
+        document.getElementById("most_common_combo").innerText = result.most_common_combo;
+
+        // Render penalty details
+        renderPenaltyDetails(result.penalty_details);
+
+        // Staggered reveal
+        setTimeout(() => revealResults(), 300);
+
+        // Smooth scroll to output
+        setTimeout(() => {
+          outputEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 600);
       } else {
         showErrorPopup(result.error || "Terjadi kesalahan saat prediksi.");
       }
-    });
+    } catch (err) {
+      overlayEl.style.display = "none";
+      loadingEl.style.display = "none";
+      showErrorPopup("Tidak dapat terhubung ke server. Pastikan server berjalan.");
+    }
+  });
+
+  // Reset button
+  document.getElementById("btnReset").addEventListener("click", resetAll);
 });
-
-
