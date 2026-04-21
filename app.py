@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, jsonify
 from predict import (
     prepare_input, describe_composition, model,
-    calculate_penalty_details, calculate_confidence, moderate_prediction,
+    calculate_penalty_details, calculate_agent_mismatch_penalty,
+    calculate_confidence, moderate_prediction,
     AGENT_ROLE_MAP, role_mean_dict, ROLE_ORDER
 )
 import numpy as np
@@ -49,30 +50,26 @@ def predict():
     pred = float(model.predict(x, verbose=0)[0,0])
     pred = np.clip(pred, 0, 1)
 
-    # Penalti terpusat (dari predict.py — SATU SUMBER KEBENARAN)
-    penalty, penalty_details = calculate_penalty_details(role_vec)
-    adj = np.clip(pred - penalty, 0, 1)
-    
-    # Moderasi output berdasarkan confidence
-    confidence = calculate_confidence(team, map_, sim_score)
-    moderated = moderate_prediction(adj, confidence)
-    
+    # ===== Role composition penalty =====
+    role_penalty, penalty_details = calculate_penalty_details(role_vec)
     comp = describe_composition(role_vec)
 
-    # Hitung Most Common Combo (dari data yang sudah di-cache)
+    # ===== Historical data: combo + agent pool =====
     most_common_combo = "Tidak ditemukan"
+    historical_agents_set = set()  # semua agent pernah dipakai tim di map ini
+
     if HIST_DATA_LOADED:
         try:
             df_filtered = df_hist[
                 (df_hist["Team"].str.lower() == team.lower()) &
                 (df_hist["Map"].str.lower() == map_.lower())
             ]
-
             combos = []
             for _, g in df_filtered.groupby("match_id"):
                 if len(g) == 5:
                     combo = tuple(sorted(g["Agent"].str.lower()))
                     combos.append(combo)
+                    historical_agents_set.update(combo)
 
             if combos:
                 from collections import Counter
@@ -81,6 +78,19 @@ def predict():
         except Exception:
             most_common_combo = "Error memuat combo"
 
+    # ===== Agent mismatch penalty (minor, -2% per agent di luar rotasi) =====
+    mismatch_penalty, mismatch_details = calculate_agent_mismatch_penalty(
+        agents, historical_agents_set
+    )
+
+    # ===== Gabungkan penalti & moderasi =====
+    total_penalty = np.clip(role_penalty + mismatch_penalty, 0, 1)
+    all_penalty_details = penalty_details + mismatch_details
+
+    adj = np.clip(pred - total_penalty, 0, 1)
+    confidence = calculate_confidence(team, map_, sim_score)
+    moderated = moderate_prediction(adj, confidence)
+
     return jsonify(
         pred=round(pred*100, 2),
         adjusted_pred=round(moderated*100, 2),
@@ -88,8 +98,8 @@ def predict():
         sim_score=round(sim_score*100, 2),
         confidence=round(confidence*100, 2),
         most_common_combo=most_common_combo,
-        penalty_details=penalty_details,
-        total_penalty=round(penalty*100, 2)
+        penalty_details=all_penalty_details,
+        total_penalty=round(total_penalty*100, 2)
     )
     
 

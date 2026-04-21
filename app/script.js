@@ -162,35 +162,20 @@ function closeErrorPopup() {
   }, 250);
 }
 
-// ===== Gauge Color Interpolation (Red → Orange → Green) =====
-// Maps 0-100% → hue 0° (red) → 30° (orange) → 130° (green)
-function interpolateColor(pct) {
-  const stops = [
-    { pct:  0, h:   0, s: 75, l: 40 },   // deep red
-    { pct: 35, h:   5, s: 78, l: 45 },   // red
-    { pct: 50, h:  25, s: 80, l: 42 },   // orange
-    { pct: 65, h:  70, s: 60, l: 36 },   // yellow-green
-    { pct:100, h: 130, s: 58, l: 35 },   // green
-  ];
+// ===== Gauge Zone Colors (Discrete, High-Contrast) =====
+// Speedometer: arc length = % value, color = zone
+function getZoneColor(pct) {
+  if (pct >= 65) return "#27ae60";  // vivid green
+  if (pct >= 50) return "#f39c12";  // amber/yellow
+  if (pct >= 35) return "#e67e22";  // vivid orange
+  return "#e74c3c";                 // vivid red
+}
 
-  // clamp
-  const p = Math.max(0, Math.min(100, pct));
-
-  // find surrounding stops
-  let lo = stops[0], hi = stops[stops.length - 1];
-  for (let i = 0; i < stops.length - 1; i++) {
-    if (p >= stops[i].pct && p <= stops[i + 1].pct) {
-      lo = stops[i];
-      hi = stops[i + 1];
-      break;
-    }
-  }
-
-  const t = lo.pct === hi.pct ? 0 : (p - lo.pct) / (hi.pct - lo.pct);
-  const h = lo.h + (hi.h - lo.h) * t;
-  const s = lo.s + (hi.s - lo.s) * t;
-  const l = lo.l + (hi.l - lo.l) * t;
-  return `hsl(${h.toFixed(1)}, ${s.toFixed(1)}%, ${l.toFixed(1)}%)`;
+function getZoneGlow(pct) {
+  if (pct >= 65) return "rgba(39, 174, 96, 0.55)";
+  if (pct >= 50) return "rgba(243, 156, 18, 0.55)";
+  if (pct >= 35) return "rgba(230, 126, 34, 0.55)";
+  return "rgba(231, 76, 60, 0.55)";
 }
 
 function getGaugeStatusText(pct) {
@@ -219,15 +204,28 @@ function animateGauge(targetPct) {
 
   const pct = Math.max(0, Math.min(100, targetPct));
 
-  // Compute interpolated color
-  const color = interpolateColor(pct);
+  // Zone color (discrete, high-contrast)
+  const color = getZoneColor(pct);
+  const glow  = getZoneGlow(pct);
 
-  // Arc always goes FULL — only color communicates the level
+  // Apply color + matching glow
   fill.style.stroke = color;
-  fill.style.filter = `drop-shadow(0 0 10px ${color})`;
-  fill.style.strokeDashoffset = 0;   // ← always full semi-circle
+  fill.style.filter = `drop-shadow(0 0 10px ${glow})`;
 
-  // Update status text (allow natural line-wrap for long labels)
+  // Fixed zone fill — bukan proporsional angka, tapi level visual:
+  // Hijau  (>=65%) = full  (4/4)
+  // Kuning (>=50%) = 3/4
+  // Oranye (>=35%) = 1/2
+  // Merah  (<35%)  = 1/4
+  let fillRatio;
+  if (pct >= 65)      fillRatio = 1.00;
+  else if (pct >= 50) fillRatio = 0.75;
+  else if (pct >= 35) fillRatio = 0.50;
+  else                fillRatio = 0.25;
+
+  fill.style.strokeDashoffset = ARC_LENGTH * (1 - fillRatio);
+
+  // Update status label
   statusEl.textContent = getGaugeStatusText(pct);
   statusEl.style.color = color;
 
@@ -242,7 +240,7 @@ function resetGauge() {
 
   fill.style.stroke = "var(--red)";
   fill.style.filter = "drop-shadow(0 0 8px rgba(255, 70, 85, 0.5))";
-  fill.style.strokeDashoffset = ARC_LENGTH;
+  fill.style.strokeDashoffset = ARC_LENGTH;  // arc hidden = empty state
 
   statusEl.textContent = "—";
   statusEl.style.color = "";

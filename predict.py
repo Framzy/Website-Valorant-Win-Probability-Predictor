@@ -70,6 +70,44 @@ def calculate_penalty(role_raw_vec):
     total, _ = calculate_penalty_details(role_raw_vec)
     return total
 
+def calculate_agent_mismatch_penalty(agents_input, historical_agents_set):
+    """
+    Minor penalty untuk agent yang tidak ada dalam rotasi historis tim di map tersebut,
+    TAPI memiliki role yang sama dengan salah satu agent historis.
+
+    Logika: Jika tim secara historis memakai Yoru (duelist) tapi user pilih Jett (duelist),
+    ada sedikit penalti (-2%) karena bukan pilihan spesifik tim itu.
+    Jika agent sama persis → tidak ada penalti.
+    Jika tidak ada data historis → tidak ada penalti (tidak menghukum tim baru).
+
+    Returns: (total_penalty_float, details_list)
+    """
+    if not historical_agents_set:
+        return 0.0, []
+
+    details = []
+    total = 0.0
+
+    for agent in agents_input:
+        a = agent.lower()
+        if a not in historical_agents_set:
+            input_role = AGENT_ROLE_MAP.get(a)
+            # Cari agent historis dengan role yang SAMA
+            same_role_hist = [
+                h for h in historical_agents_set
+                if AGENT_ROLE_MAP.get(h) == input_role and h != a
+            ]
+            if same_role_hist and input_role:
+                # Ambil contoh agent historis sebagai referensi
+                hist_example = same_role_hist[0].capitalize()
+                total += 0.02  # -2% per agent yang berbeda
+                details.append({
+                    "reason": f"{agent.capitalize()} bukan rotasi historis tim ini (lebih sering: {hist_example})",
+                    "value": -2
+                })
+
+    return total, details
+
 def get_role_ref(team, map_name):
     """Ambil referensi role historis: Tim+Map dulu, fallback ke Tim saja."""
     key = (team, map_name)
