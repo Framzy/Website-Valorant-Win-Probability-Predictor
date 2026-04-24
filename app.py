@@ -5,6 +5,10 @@ from predict import (
     calculate_confidence, moderate_prediction,
     AGENT_ROLE_MAP, role_mean_dict, ROLE_ORDER
 )
+from predict_general import (
+    calculate_casual_score, describe_composition as describe_composition_gen,
+    AGENT_ROLE_MAP as AGENT_ROLE_MAP_GEN
+)
 import numpy as np
 import pandas as pd
 import joblib
@@ -116,7 +120,34 @@ def predict():
         total_penalty=round(total_penalty*100, 2),
         gauge_thresholds=GAUGE_THRESHOLDS
     )
-    
+
+
+@app.route('/predict_general', methods=['POST'])
+def predict_general_route():
+    data = request.get_json()
+    map_ = data['map']
+    agents = [a.lower() for a in data['agents']]
+
+    # Validasi
+    if len(agents) != 5 or any(a not in AGENT_ROLE_MAP_GEN for a in agents):
+        return jsonify(error="Input agent tidak valid"), 400
+
+    # Hitung skor heuristik
+    result = calculate_casual_score(map_, agents)
+    comp = describe_composition_gen(agents)
+
+    return jsonify(
+        adjusted_pred=result['score'],
+        base_score=result['base_score'],
+        comp_desc=comp,
+        agent_details=result['agent_details'],
+        penalty_details=result['penalty_details'],
+        total_penalty=result['total_penalty'],
+        popular_comps=result['popular_comps'],
+        map_agent_count=result['map_agent_count'],
+        gauge_thresholds=result['thresholds']
+    )
+
 
 if __name__ == '__main__':
     app.run(debug=True)

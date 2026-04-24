@@ -18,9 +18,23 @@
             <p>Win Probability Predictor</p>
         </section>
 
+        <!-- ===== MODE TABS ===== -->
+        <div class="mode-tabs" id="modeTabs">
+            <button class="mode-tab active" data-mode="casual" id="tabCasual">
+                <span class="mode-tab-icon">🎯</span>
+                <span class="mode-tab-label">Casual</span>
+                <span class="mode-tab-desc">Map + Agents</span>
+            </button>
+            <button class="mode-tab" data-mode="proteam" id="tabProTeam">
+                <span class="mode-tab-icon">🏆</span>
+                <span class="mode-tab-label">Pro Team</span>
+                <span class="mode-tab-desc">Team + Map + Agents</span>
+            </button>
+        </div>
+
         <section class="content">
 
-            <!-- ===== AGENT PICKER ===== -->
+            <!-- ===== AGENT PICKER (shared) ===== -->
             <div class="topSection">
                 <div class="agent-header">
                     <p>Pilih Agent</p>
@@ -44,8 +58,23 @@
             <!-- ===== FORM + OUTPUT ===== -->
             <div class="bottomSection">
 
-                <!-- Form Team / Map / Prediksi -->
-                <div class="bottomForm">
+                <!-- Form: CASUAL mode (default active) -->
+                <div class="bottomForm mode-panel active" id="formCasual">
+                    <div class="Map">
+                        <p>Pilih Map</p>
+                        <select title="Map_Option" name="Map_Option_Casual" id="mapCasual" required>
+                            <option value="" hidden>— Pilih Map —</option>
+                        </select>
+                    </div>
+
+                    <div class="button-group">
+                        <button name="PredictCasual" type="button" class="btn-predict" id="btnPredictCasual">Prediksi</button>
+                        <button type="button" class="btn-reset" id="btnResetCasual">Reset</button>
+                    </div>
+                </div>
+
+                <!-- Form: PRO TEAM mode -->
+                <div class="bottomForm mode-panel" id="formProTeam">
                     <div class="Team">
                         <p>Pilih Team</p>
                         <select title="Team_Option" name="Team_Option" id="team" required>
@@ -66,8 +95,20 @@
                     </div>
                 </div>
 
-                <!-- Ringkasan Pilihan -->
-                <div class="inputPick">
+                <!-- Ringkasan Pilihan: CASUAL -->
+                <div class="inputPick mode-panel active" id="pickCasual">
+                    <div class="mapPick">
+                        <p>Map Dipilih</p>
+                        <p id="namaMapCasual">—</p>
+                    </div>
+                    <div class="agentPick">
+                        <p>Agent Dipilih</p>
+                        <p id="namaAgentCasual">—</p>
+                    </div>
+                </div>
+
+                <!-- Ringkasan Pilihan: PRO TEAM -->
+                <div class="inputPick mode-panel" id="pickProTeam">
                     <div class="teamPick">
                         <p>Team Dipilih</p>
                         <p id="namaTeam">—</p>
@@ -82,13 +123,13 @@
                     </div>
                 </div>
 
-                <!-- ===== HASIL PREDIKSI (hidden until first prediction) ===== -->
+                <!-- ===== HASIL PREDIKSI (shared structure) ===== -->
                 <div class="outputPredict" id="outputPredict">
                     <div class="outputContent">
 
                         <!-- Gauge Section -->
                         <div class="gauge-section" id="gaugeSection">
-                            <p class="gauge-label">Final Win Probability</p>
+                            <p class="gauge-label" id="gaugeLabel">Final Win Probability</p>
                             <div class="gauge-wrapper">
                                 <svg class="gauge-svg" viewBox="0 0 200 120" id="gaugeSvg">
                                     <!-- Background arc -->
@@ -108,14 +149,14 @@
                             <div class="stat-card reveal-item">
                                 <div class="stat-icon">📊</div>
                                 <div class="stat-info">
-                                    <span class="stat-label">Raw Probability</span>
+                                    <span class="stat-label" id="pred_label">Skor Komposisi</span>
                                     <span class="stat-value" id="pred">—</span>
                                 </div>
                             </div>
                             <div class="stat-card reveal-item">
                                 <div class="stat-icon">🎯</div>
                                 <div class="stat-info">
-                                    <span class="stat-label">Tingkat Kepercayaan</span>
+                                    <span class="stat-label" id="confidence_label">Data di Map</span>
                                     <span class="stat-value" id="confidence">—</span>
                                 </div>
                             </div>
@@ -142,10 +183,19 @@
                             </div>
                         </div>
 
-                        <!-- Best Combo Row -->
+                        <!-- Best Combo Row (Pro Team) -->
                         <div class="combo-section reveal-item" id="comboSection">
                             <p class="combo-label" id="kombinasi_agent_info">Kombinasi Terbaik Tim pada Map</p>
                             <p class="combo-value" id="most_common_combo">—</p>
+                            <p class="data-update">Last data update : 2025</p>
+                        </div>
+
+                        <!-- Popular Comps Section (Casual) -->
+                        <div class="popular-comps-section reveal-item" id="popularCompsSection" style="display:none;">
+                            <p class="popular-comps-title">Komposisi Populer di Map Ini</p>
+                            <div class="popular-comps-list" id="popularCompsList">
+                                <!-- Filled by JS -->
+                            </div>
                             <p class="data-update">Last data update : 2025</p>
                         </div>
 

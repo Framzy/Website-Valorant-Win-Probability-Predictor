@@ -1,19 +1,10 @@
-"Lanjutkan improvement fitur untuk projek JST Valorant Win Probability, sebelumnya kita sudah improve model dan logika"
-
-okay saya rasa karena data yang dimiliki tidak terlalu banyak membuat persentase masih sering tidak konsisten, saya punya ide lain. bagaimana menurut anda jika kita mengganti dari angka persentase menjadi warna semi circle dari gradasi warna merah ke hijau, jadi meminimalisir kerancuan dari angak misal jika angka persentase terlalu besar 70% atau lebih itu tida terlalu masuk akal karean masih banyak faktor lain lain namun jika warna misal hijau maka cukup persenase menag besar, akan teatpi kita bisa tetap keep angak persen dari raw, kepercayaan dan kecocokannya. bagaiaman jiak begini
-
-oke kita bisa jalankan saran anda nanti saya kana meminta anda menjalankan ide saya yang lain. 1. cob realisasikan dulu baru kita review kembali. 2. coba semi-cirlce dulu. 3. untuk saat ini cukup warna tersebut karean saya tidak ingin banyak warna, mungkin jika ingin tambahan bisa gunakan ubah tingkat kecerahannya
+Apakah pendekatan weighted score ini sudah sesuai dengan yang dimaksud? Yaitu winrate × confidence_from_match_count?
+Untuk agent yang TIDAK PERNAH dipick di map tapi role-nya sama → penalti -1% cukup kecil? Atau mau lebih/kurang?
+Label di output Casual: apakah masih ingin menampilkan "Tingkat Kepercayaan" atau diganti info lain?
 
 
+1. saya rasa jika memang menurut anda sesuai dengan ide saya boleh saja.
+2. menurut saya untuk casual atau rank saja tidak akan terlalu berpengaruh besar pada pemilihan agent jadi kecil saja, akan tetapi jika rolenya berbeda baru besar.
+3. jiak menrurt anda ada yang lebih cocok boleh diganti jika tidak tidak apa apa.
 
-1. jika agent dari suatu tim berbeda dalam role yang sama
-maka ada minor penalti agar bisa sesaui angak persentase bisa lebih akurat, ini sesuai dengan tujuan kita 
-untuk memprediksi win probability sebuah tim di tiap map. apakah logika dari program ini sudah seperti ini ?
-
-Solusi: Data-Driven Threshold (Percentile-Based)
-Alih-alih hardcode angka, kita hitung threshold dari distribusi aktual prediksi model di dataset training:
-
-
-
-2. probabliti umum, berdasrakan agent paling sering di pick dalam map oleh seluruh 
-tim jadi terdapat 2 variabel saja agent dan tim , jadi kita perlu train data lagi dengan menggabungakn data dari tim pada setiap map
+dan untuk keseluruh apakah ide casual ini sudah baik?

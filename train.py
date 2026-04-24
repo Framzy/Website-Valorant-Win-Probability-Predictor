@@ -207,10 +207,10 @@ gauge_thresholds = {
     "min": float(all_preds.min()),
     "max": float(all_preds.max()),
 }
-print(f"[INFO] Gauge zones → Merah < {gauge_thresholds['p25']*100:.1f}% | "
+print(f"[INFO] Gauge zones: Merah < {gauge_thresholds['p25']*100:.1f}% | "
       f"Oranye < {gauge_thresholds['p50']*100:.1f}% | "
       f"Kuning < {gauge_thresholds['p75']*100:.1f}% | "
-      f"Hijau ≥ {gauge_thresholds['p75']*100:.1f}%")
+      f"Hijau >= {gauge_thresholds['p75']*100:.1f}%")
 
 # Save
 print("\n[INFO] Saving model and artifacts...")
