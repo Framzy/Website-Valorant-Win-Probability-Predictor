@@ -1,7 +1,11 @@
 const BASE = "http://127.0.0.1:5000";
 const maxChecked = 5;
 let checkedOrder = [];
-let agentDataCache = []; // store agent data for filtering
+let agentDataCache = [];
+
+// Projection layer: threshold dari data aktual model (di-update dari response server)
+// Default fallback jika server belum kirim thresholds
+let gaugeThresholds = { p25: 35.0, p50: 50.0, p75: 65.0 };
 
 async function loadData() {
   const res = await fetch(`${BASE}/data.json`);
@@ -162,20 +166,27 @@ function closeErrorPopup() {
   }, 250);
 }
 
-// ===== Gauge Zone Colors (Discrete, High-Contrast) =====
-// Speedometer: arc length = % value, color = zone
+// ===== Gauge Zone Colors — pakai threshold dari data aktual =====
 function getZoneColor(pct) {
-  if (pct >= 65) return "#27ae60";  // vivid green
-  if (pct >= 50) return "#f39c12";  // amber/yellow
-  if (pct >= 35) return "#e67e22";  // vivid orange
-  return "#e74c3c";                 // vivid red
+  if (pct >= gaugeThresholds.p75) return "#27ae60";  // top 25%   → Hijau
+  if (pct >= gaugeThresholds.p50) return "#f39c12";  // 50-75%    → Kuning
+  if (pct >= gaugeThresholds.p25) return "#e67e22";  // 25-50%    → Oranye
+  return "#e74c3c";                                  // bottom 25% → Merah
 }
 
 function getZoneGlow(pct) {
-  if (pct >= 65) return "rgba(39, 174, 96, 0.55)";
-  if (pct >= 50) return "rgba(243, 156, 18, 0.55)";
-  if (pct >= 35) return "rgba(230, 126, 34, 0.55)";
+  if (pct >= gaugeThresholds.p75) return "rgba(39, 174, 96, 0.55)";
+  if (pct >= gaugeThresholds.p50) return "rgba(243, 156, 18, 0.55)";
+  if (pct >= gaugeThresholds.p25) return "rgba(230, 126, 34, 0.55)";
   return "rgba(231, 76, 60, 0.55)";
+}
+
+function getGaugeFillRatio(pct) {
+  // Fixed zone fill — level visual per kuarter
+  if (pct >= gaugeThresholds.p75) return 1.00;   // Hijau  → full
+  if (pct >= gaugeThresholds.p50) return 0.75;   // Kuning → 3/4
+  if (pct >= gaugeThresholds.p25) return 0.50;   // Oranye → 1/2
+  return 0.25;                                   // Merah  → 1/4
 }
 
 function getGaugeStatusText(pct) {
@@ -204,32 +215,16 @@ function animateGauge(targetPct) {
 
   const pct = Math.max(0, Math.min(100, targetPct));
 
-  // Zone color (discrete, high-contrast)
-  const color = getZoneColor(pct);
-  const glow  = getZoneGlow(pct);
+  const color     = getZoneColor(pct);
+  const glow      = getZoneGlow(pct);
+  const fillRatio = getGaugeFillRatio(pct);
 
-  // Apply color + matching glow
   fill.style.stroke = color;
   fill.style.filter = `drop-shadow(0 0 10px ${glow})`;
-
-  // Fixed zone fill — bukan proporsional angka, tapi level visual:
-  // Hijau  (>=65%) = full  (4/4)
-  // Kuning (>=50%) = 3/4
-  // Oranye (>=35%) = 1/2
-  // Merah  (<35%)  = 1/4
-  let fillRatio;
-  if (pct >= 65)      fillRatio = 1.00;
-  else if (pct >= 50) fillRatio = 0.75;
-  else if (pct >= 35) fillRatio = 0.50;
-  else                fillRatio = 0.25;
-
   fill.style.strokeDashoffset = ARC_LENGTH * (1 - fillRatio);
 
-  // Update status label
   statusEl.textContent = getGaugeStatusText(pct);
   statusEl.style.color = color;
-
-  // Update sub text
   subEl.textContent = getGaugeSubText(pct);
 }
 
@@ -351,7 +346,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const outputEl = document.getElementById("outputPredict");
         outputEl.classList.add("visible");
 
-        // Animate gauge
+        // Update projection layer thresholds dari server (data-calibrated)
+        if (result.gauge_thresholds) {
+          gaugeThresholds = result.gauge_thresholds;
+        }
+
+        // Animate gauge (sekarang pakai threshold dari data)
         setTimeout(() => animateGauge(result.adjusted_pred), 200);
 
         // Fill stat values

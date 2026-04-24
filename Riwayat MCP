@@ -10,5 +10,10 @@ oke kita bisa jalankan saran anda nanti saya kana meminta anda menjalankan ide s
 maka ada minor penalti agar bisa sesaui angak persentase bisa lebih akurat, ini sesuai dengan tujuan kita 
 untuk memprediksi win probability sebuah tim di tiap map. apakah logika dari program ini sudah seperti ini ?
 
+Solusi: Data-Driven Threshold (Percentile-Based)
+Alih-alih hardcode angka, kita hitung threshold dari distribusi aktual prediksi model di dataset training:
+
+
+
 2. probabliti umum, berdasrakan agent paling sering di pick dalam map oleh seluruh 
 tim jadi terdapat 2 variabel saja agent dan tim , jadi kita perlu train data lagi dengan menggabungakn data dari tim pada setiap map

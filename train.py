@@ -195,6 +195,23 @@ print(f"[INFO] Actual range:     [{yte.min():.4f}, {yte.max():.4f}]")
 # Count tim per data historis (untuk confidence calculation nanti)
 team_sample_count = df_grouped["Team"].value_counts().to_dict()
 
+# ===== GAUGE THRESHOLDS (Projection Layer) =====
+# Jalankan model di seluruh data training untuk dapat distribusi prediksi sesungguhnya.
+# P25/P50/P75 menjadi batas zona gauge — bukan hardcode 35/50/65.
+print("\n[INFO] Calculating gauge thresholds from full dataset predictions...")
+all_preds = model.predict(X, verbose=0).flatten()
+gauge_thresholds = {
+    "p25": float(np.percentile(all_preds, 25)),   # bottom 25% → Merah
+    "p50": float(np.percentile(all_preds, 50)),   # median     → Oranye/Kuning boundary
+    "p75": float(np.percentile(all_preds, 75)),   # top 25%   → Hijau
+    "min": float(all_preds.min()),
+    "max": float(all_preds.max()),
+}
+print(f"[INFO] Gauge zones → Merah < {gauge_thresholds['p25']*100:.1f}% | "
+      f"Oranye < {gauge_thresholds['p50']*100:.1f}% | "
+      f"Kuning < {gauge_thresholds['p75']*100:.1f}% | "
+      f"Hijau ≥ {gauge_thresholds['p75']*100:.1f}%")
+
 # Save
 print("\n[INFO] Saving model and artifacts...")
 model.save("jst_model.keras")
@@ -204,8 +221,9 @@ joblib.dump(team_ohe, "team_ohe.pkl")
 joblib.dump(map_ohe, "map_ohe.pkl")
 joblib.dump(mlb, "mlb.pkl")
 joblib.dump(tim_role_hist, "role_mean_dict.pkl")
-joblib.dump(tim_map_role_hist, "role_map_mean_dict.pkl")  # NEW: per Tim+Map
+joblib.dump(tim_map_role_hist, "role_map_mean_dict.pkl")
 joblib.dump(AGENT_ROLE_MAP, "agent_role_map.pkl")
 joblib.dump(team_wr, "team_wr_dict.pkl")
 joblib.dump(team_sample_count, "team_sample_count.pkl")
+joblib.dump(gauge_thresholds, "gauge_thresholds.pkl")  # ← NEW: projection layer
 print("[INFO] Done! All artifacts saved.")

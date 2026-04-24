@@ -7,6 +7,7 @@ from predict import (
 )
 import numpy as np
 import pandas as pd
+import joblib
 
 # Pre-load data historis sekali saat startup (bukan setiap request)
 print("[INFO] Pre-loading historical data...")
@@ -21,6 +22,19 @@ try:
 except Exception as e:
     HIST_DATA_LOADED = False
     print(f"[WARN] Could not load historical data: {e}")
+
+# Load gauge thresholds (projection layer)
+try:
+    _gt = joblib.load("gauge_thresholds.pkl")
+    GAUGE_THRESHOLDS = {
+        "p25": round(_gt["p25"] * 100, 1),
+        "p50": round(_gt["p50"] * 100, 1),
+        "p75": round(_gt["p75"] * 100, 1),
+    }
+    print(f"[INFO] Gauge thresholds loaded: {GAUGE_THRESHOLDS}")
+except Exception:
+    GAUGE_THRESHOLDS = {"p25": 35.0, "p50": 50.0, "p75": 65.0}
+    print("[WARN] gauge_thresholds.pkl not found, using defaults.")
 
 app = Flask(
     __name__,
@@ -99,7 +113,8 @@ def predict():
         confidence=round(confidence*100, 2),
         most_common_combo=most_common_combo,
         penalty_details=all_penalty_details,
-        total_penalty=round(total_penalty*100, 2)
+        total_penalty=round(total_penalty*100, 2),
+        gauge_thresholds=GAUGE_THRESHOLDS
     )
     
 
