@@ -1,4 +1,3 @@
-const BASE = "http://127.0.0.1:5000";
 const maxChecked = 5;
 let checkedOrder = [];
 let agentDataCache = [];
@@ -8,7 +7,7 @@ let currentMode = "casual"; // default: casual
 let gaugeThresholds = { p25: 40.0, p50: 50.0, p75: 60.0 };
 
 async function loadData() {
-  const res = await fetch(`${BASE}/data.json`);
+  const res = await fetch(`./data.json`);
   const { teams, maps, agents } = await res.json();
   agentDataCache = agents;
 
@@ -19,7 +18,10 @@ async function loadData() {
     const opt = new Option(t, t);
     teamSelect.appendChild(opt);
   });
-  teamSelect.addEventListener("change", () => (nt.innerText = teamSelect.value));
+  teamSelect.addEventListener(
+    "change",
+    () => (nt.innerText = teamSelect.value),
+  );
 
   // Populate BOTH map <select> elements
   const mapSelectPro = document.getElementById("map");
@@ -31,8 +33,14 @@ async function loadData() {
     mapSelectPro.appendChild(new Option(m, m));
     mapSelectCasual.appendChild(new Option(m, m));
   });
-  mapSelectPro.addEventListener("change", () => (nm.innerText = mapSelectPro.value));
-  mapSelectCasual.addEventListener("change", () => (nmCasual.innerText = mapSelectCasual.value));
+  mapSelectPro.addEventListener(
+    "change",
+    () => (nm.innerText = mapSelectPro.value),
+  );
+  mapSelectCasual.addEventListener(
+    "change",
+    () => (nmCasual.innerText = mapSelectCasual.value),
+  );
 
   // Generate agent cards with role badges
   const agentContainer = document.getElementById("Agent");
@@ -140,7 +148,9 @@ function toggleAgent(name, el) {
   } else {
     if (checkedOrder.length >= maxChecked) {
       const first = checkedOrder.shift();
-      const firstEl = document.querySelector(`.agent-item[data-name="${first}"]`);
+      const firstEl = document.querySelector(
+        `.agent-item[data-name="${first}"]`,
+      );
       firstEl.classList.remove("selected");
     }
     checkedOrder.push(name);
@@ -177,7 +187,9 @@ function updateAgentCounter() {
 function resetCasual() {
   // Reset agents
   checkedOrder = [];
-  document.querySelectorAll(".agent-item.selected").forEach((el) => el.classList.remove("selected"));
+  document
+    .querySelectorAll(".agent-item.selected")
+    .forEach((el) => el.classList.remove("selected"));
   updateSelectedAgents();
   updateAgentCounter();
 
@@ -195,7 +207,9 @@ function resetCasual() {
 function resetProTeam() {
   // Reset agents
   checkedOrder = [];
-  document.querySelectorAll(".agent-item.selected").forEach((el) => el.classList.remove("selected"));
+  document
+    .querySelectorAll(".agent-item.selected")
+    .forEach((el) => el.classList.remove("selected"));
   updateSelectedAgents();
   updateAgentCounter();
 
@@ -216,7 +230,9 @@ function resetRoleFilter() {
   const tabs = document.querySelectorAll(".role-tab");
   tabs.forEach((t) => t.classList.remove("active"));
   tabs[0].classList.add("active");
-  document.querySelectorAll(".agent-item").forEach((item) => item.classList.remove("role-hidden"));
+  document
+    .querySelectorAll(".agent-item")
+    .forEach((item) => item.classList.remove("role-hidden"));
 }
 
 function hideOutput() {
@@ -261,9 +277,9 @@ function getZoneGlow(pct) {
 }
 
 function getGaugeFillRatio(pct) {
-  if (pct >= gaugeThresholds.p75) return 1.00;
+  if (pct >= gaugeThresholds.p75) return 1.0;
   if (pct >= gaugeThresholds.p50) return 0.75;
-  if (pct >= gaugeThresholds.p25) return 0.50;
+  if (pct >= gaugeThresholds.p25) return 0.5;
   return 0.25;
 }
 
@@ -420,15 +436,18 @@ function configureOutputForMode(mode) {
     document.getElementById("gaugeLabel").innerText = "Skor Komposisi Agent";
     document.getElementById("pred_label").innerText = "Skor Final";
     document.getElementById("confidence_label").innerText = "Data di Map";
-    document.getElementById("sim_score_info").innerText = "Skor Sebelum Penalti";
+    document.getElementById("sim_score_info").innerText =
+      "Skor Sebelum Penalti";
   } else {
     comboSection.style.display = "block";
     popularSection.style.display = "none";
     // Pro Team labels
     document.getElementById("gaugeLabel").innerText = "Final Win Probability";
     document.getElementById("pred_label").innerText = "Raw Probability";
-    document.getElementById("confidence_label").innerText = "Tingkat Kepercayaan";
-    document.getElementById("sim_score_info").innerText = "Skor Kecocokan Historis";
+    document.getElementById("confidence_label").innerText =
+      "Tingkat Kepercayaan";
+    document.getElementById("sim_score_info").innerText =
+      "Skor Kecocokan Historis";
   }
 }
 
@@ -442,17 +461,23 @@ async function predictCasual() {
     return;
   }
   if (!map) {
-    showErrorPopup("Map belum dipilih!\nSilakan pilih salah satu map terlebih dahulu.");
+    showErrorPopup(
+      "Map belum dipilih!\nSilakan pilih salah satu map terlebih dahulu.",
+    );
     return;
   }
   if (checkedOrder.length < 5) {
-    showErrorPopup(`Agent yang dipilih masih kurang!\nDipilih: ${checkedOrder.length}/5 agent. Pilih ${5 - checkedOrder.length} agent lagi.`);
+    showErrorPopup(
+      `Agent yang dipilih masih kurang!\nDipilih: ${checkedOrder.length}/5 agent. Pilih ${5 - checkedOrder.length} agent lagi.`,
+    );
     return;
   }
 
   showLoading();
   resetGauge();
-  document.querySelectorAll(".reveal-item").forEach((el) => el.classList.remove("revealed"));
+  document
+    .querySelectorAll(".reveal-item")
+    .forEach((el) => el.classList.remove("revealed"));
 
   // Update info labels for casual mode
   document.getElementById("sim_score_info").innerText = `Skor Sebelum Penalti`;
@@ -480,7 +505,8 @@ async function predictCasual() {
 
       // Stat cards: adapt labels for casual
       document.getElementById("pred").innerText = `${result.adjusted_pred}%`;
-      document.getElementById("confidence").innerText = `${result.map_agent_count} agents`;
+      document.getElementById("confidence").innerText =
+        `${result.map_agent_count} agents`;
       document.getElementById("sim_score").innerText = `${result.base_score}%`;
       document.getElementById("comp_desc").innerText = result.comp_desc;
 
@@ -496,7 +522,9 @@ async function predictCasual() {
     }
   } catch (err) {
     hideLoading();
-    showErrorPopup("Tidak dapat terhubung ke server. Pastikan server berjalan.");
+    showErrorPopup(
+      "Tidak dapat terhubung ke server. Pastikan server berjalan.",
+    );
   }
 }
 
@@ -507,29 +535,41 @@ async function predictProTeam() {
 
   // Validasi
   if (!team && !map && checkedOrder.length < 5) {
-    showErrorPopup("Silakan pilih Team, Map, dan 5 Agent sebelum melakukan prediksi.");
+    showErrorPopup(
+      "Silakan pilih Team, Map, dan 5 Agent sebelum melakukan prediksi.",
+    );
     return;
   }
   if (!team) {
-    showErrorPopup("Team belum dipilih!\nSilakan pilih salah satu team terlebih dahulu.");
+    showErrorPopup(
+      "Team belum dipilih!\nSilakan pilih salah satu team terlebih dahulu.",
+    );
     return;
   }
   if (!map) {
-    showErrorPopup("Map belum dipilih!\nSilakan pilih salah satu map terlebih dahulu.");
+    showErrorPopup(
+      "Map belum dipilih!\nSilakan pilih salah satu map terlebih dahulu.",
+    );
     return;
   }
   if (checkedOrder.length < 5) {
-    showErrorPopup(`Agent yang dipilih masih kurang!\nDipilih: ${checkedOrder.length}/5 agent. Pilih ${5 - checkedOrder.length} agent lagi.`);
+    showErrorPopup(
+      `Agent yang dipilih masih kurang!\nDipilih: ${checkedOrder.length}/5 agent. Pilih ${5 - checkedOrder.length} agent lagi.`,
+    );
     return;
   }
 
   showLoading();
   resetGauge();
-  document.querySelectorAll(".reveal-item").forEach((el) => el.classList.remove("revealed"));
+  document
+    .querySelectorAll(".reveal-item")
+    .forEach((el) => el.classList.remove("revealed"));
 
   // Update info labels
-  document.getElementById("sim_score_info").innerText = `Kecocokan Dengan ${team}`;
-  document.getElementById("kombinasi_agent_info").innerText = `Kombinasi Terbaik ${team} Pada Map ${map}`;
+  document.getElementById("sim_score_info").innerText =
+    `Kecocokan Dengan ${team}`;
+  document.getElementById("kombinasi_agent_info").innerText =
+    `Kombinasi Terbaik ${team} Pada Map ${map}`;
 
   try {
     const response = await fetch(`${BASE}/predict`, {
@@ -556,7 +596,8 @@ async function predictProTeam() {
       document.getElementById("confidence").innerText = `${result.confidence}%`;
       document.getElementById("sim_score").innerText = `${result.sim_score}%`;
       document.getElementById("comp_desc").innerText = result.comp_desc;
-      document.getElementById("most_common_combo").innerText = result.most_common_combo;
+      document.getElementById("most_common_combo").innerText =
+        result.most_common_combo;
 
       renderPenaltyDetails(result.penalty_details);
 
@@ -569,7 +610,9 @@ async function predictProTeam() {
     }
   } catch (err) {
     hideLoading();
-    showErrorPopup("Tidak dapat terhubung ke server. Pastikan server berjalan.");
+    showErrorPopup(
+      "Tidak dapat terhubung ke server. Pastikan server berjalan.",
+    );
   }
 }
 
@@ -590,10 +633,16 @@ document.addEventListener("DOMContentLoaded", () => {
   setupModeTabs();
 
   // Casual predict & reset
-  document.getElementById("btnPredictCasual").addEventListener("click", predictCasual);
-  document.getElementById("btnResetCasual").addEventListener("click", resetCasual);
+  document
+    .getElementById("btnPredictCasual")
+    .addEventListener("click", predictCasual);
+  document
+    .getElementById("btnResetCasual")
+    .addEventListener("click", resetCasual);
 
   // Pro Team predict & reset
-  document.getElementById("btnPredict").addEventListener("click", predictProTeam);
+  document
+    .getElementById("btnPredict")
+    .addEventListener("click", predictProTeam);
   document.getElementById("btnReset").addEventListener("click", resetProTeam);
 });
