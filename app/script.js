@@ -483,7 +483,7 @@ async function predictCasual() {
   document.getElementById("sim_score_info").innerText = `Skor Sebelum Penalti`;
 
   try {
-    const response = await fetch(`${BASE}/predict_general`, {
+    const response = await fetch(`./predict_general`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ map, agents: checkedOrder }),
@@ -572,7 +572,7 @@ async function predictProTeam() {
     `Kombinasi Terbaik ${team} Pada Map ${map}`;
 
   try {
-    const response = await fetch(`${BASE}/predict`, {
+    const response = await fetch(`./predict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ team, map, agents: checkedOrder }),
