@@ -1,229 +1,272 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Prediksi Win Probability tim Valorant berdasarkan komposisi agent menggunakan Jaringan Saraf Tiruan (JST).">
-    <link rel="stylesheet" href="style.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Prediksi Win Probability tim Valorant berdasarkan komposisi agent menggunakan Jaringan Saraf Tiruan (JST)."
+    />
+    <link rel="stylesheet" href="style.css" />
     <title>Valorant Win Probability</title>
-</head>
+  </head>
 
-<body>
+  <body>
     <main class="container">
+      <!-- ===== HEADER ===== -->
+      <section class="logo">
+        <img src="src/logo_valorant.png" alt="Valorant Logo" />
+        <p>Win Probability Predictor</p>
+      </section>
 
-        <!-- ===== HEADER ===== -->
-        <section class="logo">
-            <img src="src/logo_valorant.png" alt="Valorant Logo">
-            <p>Win Probability Predictor</p>
-        </section>
+      <!-- ===== MODE TABS ===== -->
+      <div class="mode-tabs" id="modeTabs">
+        <button class="mode-tab active" data-mode="casual" id="tabCasual">
+          <span class="mode-tab-icon">🎯</span>
+          <span class="mode-tab-label">Casual</span>
+          <span class="mode-tab-desc">Map + Agents</span>
+        </button>
+        <button class="mode-tab" data-mode="proteam" id="tabProTeam">
+          <span class="mode-tab-icon">🏆</span>
+          <span class="mode-tab-label">Pro Team</span>
+          <span class="mode-tab-desc">Team + Map + Agents</span>
+        </button>
+      </div>
 
-        <!-- ===== MODE TABS ===== -->
-        <div class="mode-tabs" id="modeTabs">
-            <button class="mode-tab active" data-mode="casual" id="tabCasual">
-                <span class="mode-tab-icon">🎯</span>
-                <span class="mode-tab-label">Casual</span>
-                <span class="mode-tab-desc">Map + Agents</span>
-            </button>
-            <button class="mode-tab" data-mode="proteam" id="tabProTeam">
-                <span class="mode-tab-icon">🏆</span>
-                <span class="mode-tab-label">Pro Team</span>
-                <span class="mode-tab-desc">Team + Map + Agents</span>
-            </button>
+      <section class="content">
+        <!-- ===== AGENT PICKER (shared) ===== -->
+        <div class="topSection">
+          <div class="agent-header">
+            <p>Pilih Agent</p>
+            <span class="agent-counter" id="agentCounter"
+              >0 / 5 Agent Dipilih</span
+            >
+          </div>
+
+          <!-- Role Filter Tabs -->
+          <div class="role-filter" id="roleFilter">
+            <button class="role-tab active" data-role="all">Semua</button>
+            <button class="role-tab" data-role="duelist">Duelist</button>
+            <button class="role-tab" data-role="initiator">Initiator</button>
+            <button class="role-tab" data-role="controller">Controller</button>
+            <button class="role-tab" data-role="sentinel">Sentinel</button>
+          </div>
+
+          <div class="Agent" id="Agent"></div>
         </div>
 
-        <section class="content">
+        <div class="section-divider"></div>
 
-            <!-- ===== AGENT PICKER (shared) ===== -->
-            <div class="topSection">
-                <div class="agent-header">
-                    <p>Pilih Agent</p>
-                    <span class="agent-counter" id="agentCounter">0 / 5 Agent Dipilih</span>
-                </div>
-
-                <!-- Role Filter Tabs -->
-                <div class="role-filter" id="roleFilter">
-                    <button class="role-tab active" data-role="all">Semua</button>
-                    <button class="role-tab" data-role="duelist">Duelist</button>
-                    <button class="role-tab" data-role="initiator">Initiator</button>
-                    <button class="role-tab" data-role="controller">Controller</button>
-                    <button class="role-tab" data-role="sentinel">Sentinel</button>
-                </div>
-
-                <div class="Agent" id="Agent"></div>
+        <!-- ===== FORM + OUTPUT ===== -->
+        <div class="bottomSection">
+          <!-- Form: CASUAL mode (default active) -->
+          <div class="bottomForm mode-panel active" id="formCasual">
+            <div class="Map">
+              <p>Pilih Map</p>
+              <select
+                title="Map_Option"
+                name="Map_Option_Casual"
+                id="mapCasual"
+                required
+              >
+                <option value="" hidden>— Pilih Map —</option>
+              </select>
             </div>
 
-            <div class="section-divider"></div>
-
-            <!-- ===== FORM + OUTPUT ===== -->
-            <div class="bottomSection">
-
-                <!-- Form: CASUAL mode (default active) -->
-                <div class="bottomForm mode-panel active" id="formCasual">
-                    <div class="Map">
-                        <p>Pilih Map</p>
-                        <select title="Map_Option" name="Map_Option_Casual" id="mapCasual" required>
-                            <option value="" hidden>— Pilih Map —</option>
-                        </select>
-                    </div>
-
-                    <div class="button-group">
-                        <button name="PredictCasual" type="button" class="btn-predict" id="btnPredictCasual">Prediksi</button>
-                        <button type="button" class="btn-reset" id="btnResetCasual">Reset</button>
-                    </div>
-                </div>
-
-                <!-- Form: PRO TEAM mode -->
-                <div class="bottomForm mode-panel" id="formProTeam">
-                    <div class="Team">
-                        <p>Pilih Team</p>
-                        <select title="Team_Option" name="Team_Option" id="team" required>
-                            <option value="" hidden>— Pilih Tim —</option>
-                        </select>
-                    </div>
-
-                    <div class="Map">
-                        <p>Pilih Map</p>
-                        <select title="Map_Option" name="Map_Option" id="map" required>
-                            <option value="" hidden>— Pilih Map —</option>
-                        </select>
-                    </div>
-
-                    <div class="button-group">
-                        <button name="Predict" type="button" class="btn-predict" id="btnPredict">Prediksi</button>
-                        <button type="button" class="btn-reset" id="btnReset">Reset</button>
-                    </div>
-                </div>
-
-                <!-- Ringkasan Pilihan: CASUAL -->
-                <div class="inputPick mode-panel active" id="pickCasual">
-                    <div class="mapPick">
-                        <p>Map Dipilih</p>
-                        <p id="namaMapCasual">—</p>
-                    </div>
-                    <div class="agentPick">
-                        <p>Agent Dipilih</p>
-                        <p id="namaAgentCasual">—</p>
-                    </div>
-                </div>
-
-                <!-- Ringkasan Pilihan: PRO TEAM -->
-                <div class="inputPick mode-panel" id="pickProTeam">
-                    <div class="teamPick">
-                        <p>Team Dipilih</p>
-                        <p id="namaTeam">—</p>
-                    </div>
-                    <div class="mapPick">
-                        <p>Map Dipilih</p>
-                        <p id="namaMap">—</p>
-                    </div>
-                    <div class="agentPick">
-                        <p>Agent Dipilih</p>
-                        <p id="namaAgent">—</p>
-                    </div>
-                </div>
-
-                <!-- ===== HASIL PREDIKSI (shared structure) ===== -->
-                <div class="outputPredict" id="outputPredict">
-                    <div class="outputContent">
-
-                        <!-- Gauge Section -->
-                        <div class="gauge-section" id="gaugeSection">
-                            <p class="gauge-label" id="gaugeLabel">Final Win Probability</p>
-                            <div class="gauge-wrapper">
-                                <svg class="gauge-svg" viewBox="0 0 200 120" id="gaugeSvg">
-                                    <!-- Background arc -->
-                                    <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
-                                    <!-- Value arc (animated, color set by JS) -->
-                                    <path class="gauge-fill" id="gaugeFill" d="M 20 100 A 80 80 0 0 1 180 100" />
-                                </svg>
-                                <div class="gauge-center">
-                                    <span class="gauge-status" id="gaugeStatus">—</span>
-                                    <span class="gauge-sub" id="gaugeSubText">Pilih dan prediksi</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Stat Cards Row -->
-                        <div class="stat-cards" id="statCards">
-                            <div class="stat-card reveal-item">
-                                <div class="stat-icon">📊</div>
-                                <div class="stat-info">
-                                    <span class="stat-label" id="pred_label">Skor Komposisi</span>
-                                    <span class="stat-value" id="pred">—</span>
-                                </div>
-                            </div>
-                            <div class="stat-card reveal-item">
-                                <div class="stat-icon">🎯</div>
-                                <div class="stat-info">
-                                    <span class="stat-label" id="confidence_label">Data di Map</span>
-                                    <span class="stat-value" id="confidence">—</span>
-                                </div>
-                            </div>
-                            <div class="stat-card reveal-item">
-                                <div class="stat-icon">🔗</div>
-                                <div class="stat-info">
-                                    <span class="stat-label" id="sim_score_info">Skor Kecocokan Historis</span>
-                                    <span class="stat-value" id="sim_score">—</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Role Composition & Penalty Row -->
-                        <div class="detail-row" id="detailRow">
-                            <div class="detail-card reveal-item">
-                                <p class="detail-title">Komposisi Role</p>
-                                <p class="detail-value" id="comp_desc">—</p>
-                            </div>
-                            <div class="detail-card reveal-item">
-                                <p class="detail-title">Penyesuaian Penalti</p>
-                                <div class="penalty-list" id="penaltyList">
-                                    <p class="penalty-none">—</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Best Combo Row (Pro Team) -->
-                        <div class="combo-section reveal-item" id="comboSection">
-                            <p class="combo-label" id="kombinasi_agent_info">Kombinasi Terbaik Tim pada Map</p>
-                            <p class="combo-value" id="most_common_combo">—</p>
-                            <p class="data-update">Last data update : 2025</p>
-                        </div>
-
-                        <!-- Popular Comps Section (Casual) -->
-                        <div class="popular-comps-section reveal-item" id="popularCompsSection" style="display:none;">
-                            <p class="popular-comps-title">Komposisi Populer di Map Ini</p>
-                            <div class="popular-comps-list" id="popularCompsList">
-                                <!-- Filled by JS -->
-                            </div>
-                            <p class="data-update">Last data update : 2025</p>
-                        </div>
-
-                    </div>
-                </div>
-
+            <div class="button-group">
+              <button
+                name="PredictCasual"
+                type="button"
+                class="btn-predict"
+                id="btnPredictCasual"
+              >
+                Prediksi
+              </button>
+              <button type="button" class="btn-reset" id="btnResetCasual">
+                Reset
+              </button>
             </div>
-        </section>
+          </div>
 
-        <!-- ===== LOADING ===== -->
-        <div id="overlay" class="loadingOverlay"></div>
-        <div id="loading" class="loadingPopup">
-            <span class="loader"></span>
-            <p>Menghitung Prediksi...</p>
+          <!-- Form: PRO TEAM mode -->
+          <div class="bottomForm mode-panel" id="formProTeam">
+            <div class="Team">
+              <p>Pilih Team</p>
+              <select title="Team_Option" name="Team_Option" id="team" required>
+                <option value="" hidden>— Pilih Tim —</option>
+              </select>
+            </div>
+
+            <div class="Map">
+              <p>Pilih Map</p>
+              <select title="Map_Option" name="Map_Option" id="map" required>
+                <option value="" hidden>— Pilih Map —</option>
+              </select>
+            </div>
+
+            <div class="button-group">
+              <button
+                name="Predict"
+                type="button"
+                class="btn-predict"
+                id="btnPredict"
+              >
+                Prediksi
+              </button>
+              <button type="button" class="btn-reset" id="btnReset">
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- Ringkasan Pilihan: CASUAL -->
+          <div class="inputPick mode-panel active" id="pickCasual">
+            <div class="mapPick">
+              <p>Map Dipilih</p>
+              <p id="namaMapCasual">—</p>
+            </div>
+            <div class="agentPick">
+              <p>Agent Dipilih</p>
+              <p id="namaAgentCasual">—</p>
+            </div>
+          </div>
+
+          <!-- Ringkasan Pilihan: PRO TEAM -->
+          <div class="inputPick mode-panel" id="pickProTeam">
+            <div class="teamPick">
+              <p>Team Dipilih</p>
+              <p id="namaTeam">—</p>
+            </div>
+            <div class="mapPick">
+              <p>Map Dipilih</p>
+              <p id="namaMap">—</p>
+            </div>
+            <div class="agentPick">
+              <p>Agent Dipilih</p>
+              <p id="namaAgent">—</p>
+            </div>
+          </div>
+
+          <!-- ===== HASIL PREDIKSI (shared structure) ===== -->
+          <div class="outputPredict" id="outputPredict">
+            <div class="outputContent">
+              <!-- Gauge Section -->
+              <div class="gauge-section" id="gaugeSection">
+                <p class="gauge-label" id="gaugeLabel">Final Win Probability</p>
+                <div class="gauge-wrapper">
+                  <svg class="gauge-svg" viewBox="0 0 200 120" id="gaugeSvg">
+                    <!-- Background arc -->
+                    <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
+                    <!-- Value arc (animated, color set by JS) -->
+                    <path
+                      class="gauge-fill"
+                      id="gaugeFill"
+                      d="M 20 100 A 80 80 0 0 1 180 100"
+                    />
+                  </svg>
+                  <div class="gauge-center">
+                    <span class="gauge-status" id="gaugeStatus">—</span>
+                    <span class="gauge-sub" id="gaugeSubText"
+                      >Pilih dan prediksi</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stat Cards Row -->
+              <div class="stat-cards" id="statCards">
+                <div class="stat-card reveal-item">
+                  <div class="stat-icon">📊</div>
+                  <div class="stat-info">
+                    <span class="stat-label" id="pred_label"
+                      >Skor Komposisi</span
+                    >
+                    <span class="stat-value" id="pred">—</span>
+                  </div>
+                </div>
+                <div class="stat-card reveal-item">
+                  <div class="stat-icon">🎯</div>
+                  <div class="stat-info">
+                    <span class="stat-label" id="confidence_label"
+                      >Data di Map</span
+                    >
+                    <span class="stat-value" id="confidence">—</span>
+                  </div>
+                </div>
+                <div class="stat-card reveal-item">
+                  <div class="stat-icon">🔗</div>
+                  <div class="stat-info">
+                    <span class="stat-label" id="sim_score_info"
+                      >Skor Kecocokan Historis</span
+                    >
+                    <span class="stat-value" id="sim_score">—</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Role Composition & Penalty Row -->
+              <div class="detail-row" id="detailRow">
+                <div class="detail-card reveal-item">
+                  <p class="detail-title">Komposisi Role</p>
+                  <p class="detail-value" id="comp_desc">—</p>
+                </div>
+                <div class="detail-card reveal-item">
+                  <p class="detail-title">Penyesuaian Penalti</p>
+                  <div class="penalty-list" id="penaltyList">
+                    <p class="penalty-none">—</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Best Combo Row (Pro Team) -->
+              <div class="combo-section reveal-item" id="comboSection">
+                <p class="combo-label" id="kombinasi_agent_info">
+                  Kombinasi Terbaik Tim pada Map
+                </p>
+                <p class="combo-value" id="most_common_combo">—</p>
+                <p class="data-update">Last data update : 2025</p>
+              </div>
+
+              <!-- Popular Comps Section (Casual) -->
+              <div
+                class="popular-comps-section reveal-item"
+                id="popularCompsSection"
+                style="display: none"
+              >
+                <p class="popular-comps-title">Komposisi Populer di Map Ini</p>
+                <div class="popular-comps-list" id="popularCompsList">
+                  <!-- Filled by JS -->
+                </div>
+                <p class="data-update">Last data update : 2025</p>
+              </div>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <!-- ===== ERROR POPUP ===== -->
-        <div id="errorOverlay" class="errorOverlay" onclick="closeErrorPopup()"></div>
-        <div id="errorPopup" class="errorPopup">
-            <div class="errorIcon">⚠️</div>
-            <h2 class="errorTitle">Input Tidak Lengkap</h2>
-            <p class="errorMessage" id="errorMessage"></p>
-            <button class="errorCloseBtn" onclick="closeErrorPopup()">Mengerti</button>
-        </div>
+      <!-- ===== LOADING ===== -->
+      <div id="overlay" class="loadingOverlay"></div>
+      <div id="loading" class="loadingPopup">
+        <span class="loader"></span>
+        <p>Menghitung Prediksi...</p>
+      </div>
 
+      <!-- ===== ERROR POPUP ===== -->
+      <div
+        id="errorOverlay"
+        class="errorOverlay"
+        onclick="closeErrorPopup()"
+      ></div>
+      <div id="errorPopup" class="errorPopup">
+        <div class="errorIcon">⚠️</div>
+        <h2 class="errorTitle">Input Tidak Lengkap</h2>
+        <p class="errorMessage" id="errorMessage"></p>
+        <button class="errorCloseBtn" onclick="closeErrorPopup()">
+          Mengerti
+        </button>
+      </div>
     </main>
 
     <script src="script.js"></script>
-</body>
-
+  </body>
 </html>

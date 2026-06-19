@@ -5,12 +5,12 @@ import joblib
 import math
 
 # Load pre-computed data
-agent_map_weighted  = joblib.load("agent_map_weighted.pkl")
-map_max_count       = joblib.load("map_max_count.pkl")
-role_popular_agents = joblib.load("role_popular_agents.pkl")
-popular_comps       = joblib.load("popular_comps.pkl")
-casual_thresholds   = joblib.load("casual_thresholds.pkl")
-AGENT_ROLE_MAP      = joblib.load("agent_role_map_general.pkl")
+agent_map_weighted  = joblib.load("model/agent_map_weighted.pkl")
+map_max_count       = joblib.load("model/map_max_count.pkl")
+role_popular_agents = joblib.load("model/role_popular_agents.pkl")
+popular_comps       = joblib.load("model/popular_comps.pkl")
+casual_thresholds   = joblib.load("model/casual_thresholds.pkl")
+AGENT_ROLE_MAP      = joblib.load("model/agent_role_map_general.pkl")
 
 ROLE_ORDER = ["duelist", "initiator", "controller", "sentinel"]
 

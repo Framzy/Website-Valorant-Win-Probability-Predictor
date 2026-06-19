@@ -29,7 +29,7 @@ except Exception as e:
 
 # Load gauge thresholds (projection layer)
 try:
-    _gt = joblib.load("gauge_thresholds.pkl")
+    _gt = joblib.load("model/gauge_thresholds.pkl")
     GAUGE_THRESHOLDS = {
         "p25": round(_gt["p25"] * 100, 1),
         "p50": round(_gt["p50"] * 100, 1),
@@ -42,9 +42,9 @@ except Exception:
 
 app = Flask(
     __name__,
-    static_folder='frontend/app',       # ← serve semua file statis dari folder 'app'
+    static_folder='./../frontend/app',       # ← serve semua file statis dari folder 'app'
     static_url_path='',        # ← supaya CSS/JS/JSON bisa diakses di root URL
-    template_folder='frontend/app'      # ← cari index.html di folder 'app'
+    template_folder='./../frontend/app'      # ← cari index.html di folder 'app'
 )
 
 @app.route('/')

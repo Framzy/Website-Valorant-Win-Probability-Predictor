@@ -500,11 +500,13 @@ async function predictCasual() {
       if (result.gauge_thresholds) {
         gaugeThresholds = result.gauge_thresholds;
       }
+      console.log("gauge thresholds: ", gaugeThresholds);
 
       setTimeout(() => animateGauge(result.adjusted_pred), 200);
 
       // Stat cards: adapt labels for casual
       document.getElementById("pred").innerText = `${result.adjusted_pred}%`;
+      console.log(result.adjusted_pred);
       document.getElementById("confidence").innerText =
         `${result.map_agent_count} agents`;
       document.getElementById("sim_score").innerText = `${result.base_score}%`;
@@ -598,6 +600,7 @@ async function predictProTeam() {
       document.getElementById("comp_desc").innerText = result.comp_desc;
       document.getElementById("most_common_combo").innerText =
         result.most_common_combo;
+      console.log("gauge thresholds: ", gaugeThresholds);
 
       renderPenaltyDetails(result.penalty_details);
 
