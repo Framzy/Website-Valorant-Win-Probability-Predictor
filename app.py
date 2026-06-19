@@ -42,9 +42,9 @@ except Exception:
 
 app = Flask(
     __name__,
-    static_folder='app',       # ← serve semua file statis dari folder 'app'
+    static_folder='frontend/app',       # ← serve semua file statis dari folder 'app'
     static_url_path='',        # ← supaya CSS/JS/JSON bisa diakses di root URL
-    template_folder='app'      # ← cari index.html di folder 'app'
+    template_folder='frontend/app'      # ← cari index.html di folder 'app'
 )
 
 @app.route('/')
