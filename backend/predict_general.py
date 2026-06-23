@@ -1,16 +1,19 @@
 # === predict_general.py ===
-# Scoring heuristik untuk Casual mode
-# Menghitung weighted score berdasarkan data historis agent-map
+
 import joblib
 import math
+from config import (
+    AGENT_MAP_WEIGHTED_PATH, MAP_MAX_COUNT_PATH, ROLE_POPULAR_AGENTS_PATH,
+    POPULAR_COMPS_PATH, CASUAL_THRESHOLDS_PATH, AGENT_ROLE_MAP_GENERAL_PATH
+)
 
-# Load pre-computed data
-agent_map_weighted  = joblib.load("model/agent_map_weighted.pkl")
-map_max_count       = joblib.load("model/map_max_count.pkl")
-role_popular_agents = joblib.load("model/role_popular_agents.pkl")
-popular_comps       = joblib.load("model/popular_comps.pkl")
-casual_thresholds   = joblib.load("model/casual_thresholds.pkl")
-AGENT_ROLE_MAP      = joblib.load("model/agent_role_map_general.pkl")
+agent_map_weighted = joblib.load(AGENT_MAP_WEIGHTED_PATH)
+map_max_count = joblib.load(MAP_MAX_COUNT_PATH)
+role_popular_agents = joblib.load(ROLE_POPULAR_AGENTS_PATH)
+popular_comps = joblib.load(POPULAR_COMPS_PATH)
+casual_thresholds = joblib.load(CASUAL_THRESHOLDS_PATH)
+
+AGENT_ROLE_MAP = joblib.load(AGENT_ROLE_MAP_GENERAL_PATH)
 
 ROLE_ORDER = ["duelist", "initiator", "controller", "sentinel"]
 

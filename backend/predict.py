@@ -4,17 +4,29 @@ import numpy as np
 import pandas as pd
 from tensorflow.keras.models import load_model
 
-model          = load_model("model/jst_model.keras")
-role_scaler    = joblib.load("model/role_scaler.pkl")
-extra_scaler   = joblib.load("model/extra_scaler.pkl")
-team_ohe       = joblib.load("model/team_ohe.pkl")
-map_ohe        = joblib.load("model/map_ohe.pkl")
-mlb            = joblib.load("model/mlb.pkl")
-AGENT_ROLE_MAP = joblib.load("model/agent_role_map.pkl")
-role_mean_dict     = joblib.load("model/role_mean_dict.pkl")      # per-Tim (fallback)
-role_map_mean_dict = joblib.load("model/role_map_mean_dict.pkl")  # per-Tim+Map (akurat)
-team_wr_dict   = joblib.load("model/team_wr_dict.pkl")
-team_sample_count = joblib.load("model/team_sample_count.pkl")
+from config import (
+    MODEL_PATH, ROLE_SCALER_PATH, EXTRA_SCALER_PATH,
+    TEAM_OHE_PATH, MAP_OHE_PATH, MLB_PATH,
+    AGENT_ROLE_MAP_PATH, ROLE_MEAN_DICT_PATH, ROLE_MAP_MEAN_DICT_PATH,
+    TEAM_WR_DICT_PATH, TEAM_SAMPLE_COUNT_PATH)
+
+model = load_model(MODEL_PATH)
+
+role_scaler = joblib.load(ROLE_SCALER_PATH)
+extra_scaler = joblib.load(EXTRA_SCALER_PATH)
+
+team_ohe = joblib.load(TEAM_OHE_PATH)
+map_ohe = joblib.load(MAP_OHE_PATH)
+
+mlb = joblib.load(MLB_PATH)
+
+AGENT_ROLE_MAP = joblib.load(AGENT_ROLE_MAP_PATH)
+
+role_mean_dict = joblib.load(ROLE_MEAN_DICT_PATH)
+role_map_mean_dict = joblib.load(ROLE_MAP_MEAN_DICT_PATH)
+
+team_wr_dict = joblib.load(TEAM_WR_DICT_PATH)
+team_sample_count = joblib.load(TEAM_SAMPLE_COUNT_PATH)
 
 ROLE_ORDER = ["duelist", "initiator", "controller", "sentinel"]
 
