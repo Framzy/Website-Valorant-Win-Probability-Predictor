@@ -3,33 +3,27 @@ from predict import (
     prepare_input, describe_composition, model,
     calculate_penalty_details, calculate_agent_mismatch_penalty,
     calculate_confidence, moderate_prediction,
-    AGENT_ROLE_MAP, role_mean_dict, ROLE_ORDER
+    AGENT_ROLE_MAP, role_mean_dict
 )
+
 from predict_general import (
     calculate_casual_score, describe_composition as describe_composition_gen,
     AGENT_ROLE_MAP as AGENT_ROLE_MAP_GEN
 )
+
+from historical_service import (
+    get_team_map_stats
+)
+
 import numpy as np
-import pandas as pd
 import joblib
 
-# Pre-load data historis sekali saat startup (bukan setiap request)
-print("[INFO] Pre-loading historical data...")
-try:
-    df_hist = pd.read_csv("valorant_dataset_all.csv")
-    df_hist["match_id"] = (
-        df_hist['Tournament'] + "_" + df_hist['Stage'] + "_" +
-        df_hist['Match Type'] + "_" + df_hist['Map'] + "_" + df_hist['Team']
-    )
-    HIST_DATA_LOADED = True
-    print("[INFO] Historical data loaded successfully.")
-except Exception as e:
-    HIST_DATA_LOADED = False
-    print(f"[WARN] Could not load historical data: {e}")
+from config import GAUGE_THRESHOLDS_PATH
+
 
 # Load gauge thresholds (projection layer)
 try:
-    _gt = joblib.load("model/gauge_thresholds.pkl")
+    _gt = joblib.load(GAUGE_THRESHOLDS_PATH)
     GAUGE_THRESHOLDS = {
         "p25": round(_gt["p25"] * 100, 1),
         "p50": round(_gt["p50"] * 100, 1),
@@ -54,9 +48,22 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.get_json()
-    team = data['team']
-    map_ = data['map']
-    agents = [a.lower() for a in data['agents']]
+    
+    if not data:
+        return jsonify(
+            error="Request JSON tidak valid"
+        ), 400
+
+    team = data.get("team")
+    map_ = data.get("map")
+    agents = data.get("agents")
+
+    if not team or not map_ or not agents:
+        return jsonify(
+            error="Data tidak lengkap"
+        ), 400
+
+    agents = [a.lower() for a in agents]
 
     # validasi singkat
     if len(agents) != 5 or any(a not in AGENT_ROLE_MAP for a in agents):
@@ -73,28 +80,10 @@ def predict():
     comp = describe_composition(role_vec)
 
     # ===== Historical data: combo + agent pool =====
-    most_common_combo = "Tidak ditemukan"
-    historical_agents_set = set()  # semua agent pernah dipakai tim di map ini
-
-    if HIST_DATA_LOADED:
-        try:
-            df_filtered = df_hist[
-                (df_hist["Team"].str.lower() == team.lower()) &
-                (df_hist["Map"].str.lower() == map_.lower())
-            ]
-            combos = []
-            for _, g in df_filtered.groupby("match_id"):
-                if len(g) == 5:
-                    combo = tuple(sorted(g["Agent"].str.lower()))
-                    combos.append(combo)
-                    historical_agents_set.update(combo)
-
-            if combos:
-                from collections import Counter
-                most_common = Counter(combos).most_common(1)[0][0]
-                most_common_combo = ", ".join(most_common).title()
-        except Exception:
-            most_common_combo = "Error memuat combo"
+    most_common_combo, historical_agents_set = get_team_map_stats(
+        team,
+        map_
+    )
 
     # ===== Agent mismatch penalty (minor, -2% per agent di luar rotasi) =====
     mismatch_penalty, mismatch_details = calculate_agent_mismatch_penalty(
@@ -125,8 +114,21 @@ def predict():
 @app.route('/predict_general', methods=['POST'])
 def predict_general_route():
     data = request.get_json()
-    map_ = data['map']
-    agents = [a.lower() for a in data['agents']]
+    
+    if not data:
+        return jsonify(
+            error="Request JSON tidak valid"
+        ), 400
+    
+    map_ = data.get("map")
+    agents = data.get("agents")
+
+    if not map_ or not agents:
+        return jsonify(
+            error="Data tidak lengkap"
+        ), 400
+
+    agents = [a.lower() for a in agents]
 
     # Validasi
     if len(agents) != 5 or any(a not in AGENT_ROLE_MAP_GEN for a in agents):
@@ -148,6 +150,12 @@ def predict_general_route():
         gauge_thresholds=result['thresholds']
     )
 
+@app.errorhandler(Exception)
+def handle_error(error):
+    print(f"[ERROR] {error}")
 
+    return jsonify(
+        error="Terjadi kesalahan pada server"
+    ), 500
 if __name__ == '__main__':
     app.run(debug=True)
