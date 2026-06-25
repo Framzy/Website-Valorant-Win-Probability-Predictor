@@ -50,3 +50,4 @@ MAP_MAX_COUNT_PATH = MODEL_DIR / "map_max_count.pkl"
 ROLE_POPULAR_AGENTS_PATH = MODEL_DIR / "role_popular_agents.pkl"
 POPULAR_COMPS_PATH = MODEL_DIR / "popular_comps.pkl"
 CASUAL_THRESHOLDS_PATH = MODEL_DIR / "casual_thresholds.pkl"
+

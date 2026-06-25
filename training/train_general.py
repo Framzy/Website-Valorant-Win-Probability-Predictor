@@ -36,10 +36,12 @@ AGENT_ROLE_MAP = {
     'tejo': 'initiator',
     # Controller
     'brimstone': 'controller', 'omen': 'controller', 'viper': 'controller',
-    'astra': 'controller', 'harbor': 'controller', 'clove': 'controller',
+    'astra': 'controller', 'harbor': 'controller', 'clove': 'controller', 
+    'miks': 'controller',
     # Sentinel
     'killjoy': 'sentinel', 'cypher': 'sentinel', 'sage': 'sentinel',
     'chamber': 'sentinel', 'deadlock': 'sentinel', 'vyse': 'sentinel',
+    'veto': 'sentinel',
 }
 ROLE_ORDER = ["duelist", "initiator", "controller", "sentinel"]
 

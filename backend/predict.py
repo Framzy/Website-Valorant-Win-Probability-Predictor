@@ -1,4 +1,3 @@
-# === predict.py ===
 import joblib
 import numpy as np
 import pandas as pd
@@ -19,6 +18,14 @@ team_ohe = joblib.load(TEAM_OHE_PATH)
 map_ohe = joblib.load(MAP_OHE_PATH)
 
 mlb = joblib.load(MLB_PATH)
+
+print("\n========== MLB DEBUG ==========")
+print(f"Total Agent Dalam Model: {len(mlb.classes_)}")
+
+for agent in sorted(mlb.classes_):
+    print(agent)
+
+print("===============================\n")
 
 AGENT_ROLE_MAP = joblib.load(AGENT_ROLE_MAP_PATH)
 
@@ -184,73 +191,111 @@ def describe_composition(vec_raw):
         return "Balanced"
     return f"Dominant roles: {', '.join(dominant)}"
 
+from config  import DATASET_PATH
+
 if __name__ == "__main__":
+    
+    print("\n===== AGENT ROLE MAP =====")
+    print("phoenix" in AGENT_ROLE_MAP)
+    print("==========================")
     print("=== Prediksi Winrate Berdasarkan Komposisi Agent ===")
-    team = input("Nama Team: ").strip()
-    map_ = input("Nama Map: ").strip()
-    agents = [a.strip().lower() for a in input("5 Agent (pisah koma): ").split(',')]
+    
+    print("\n===== AGENT CONSISTENCY CHECK =====")
 
-    if len(agents)!=5 or any(a not in AGENT_ROLE_MAP for a in agents):
-        print("[ERROR] Input agent tidak valid.")
-    elif team not in role_mean_dict:
-        print("[ERROR] Tim tidak ditemukan dalam data historis.")
-    else:
-        x, role_raw_vec, sim_score = prepare_input(team, map_, agents)
-        pred = float(model.predict(x, verbose=0)[0,0])
-        # sigmoid sudah memastikan 0-1, tapi clip untuk safety
-        pred = np.clip(pred, 0, 1)
+    missing_from_mlb = []
 
-        # Penalti untuk komposisi anomali
-        penalty = calculate_penalty(role_raw_vec)
-        adjusted_pred = np.clip(pred - penalty, 0, 1)
+    for agent in sorted(AGENT_ROLE_MAP.keys()):
+        if agent not in mlb.classes_:
+            missing_from_mlb.append(agent)
+
+    print("Missing From MLB:")
+    print(missing_from_mlb)
+
+    print(f"\nTotal Missing: {len(missing_from_mlb)}")
+
+    print("===============================\n")
+    
+    df= pd.read_csv(DATASET_PATH)
+    
+    print("\n===== DATASET AGENTS =====")
+
+    dataset_agents = sorted(
+        df["Agent"]
+        .astype(str)
+        .str.lower()
+        .unique()
+    )
+
+    print(dataset_agents)
+
+    print(f"\nTotal Agents: {len(dataset_agents)}")
+
+    print("==========================\n")
+    # team = input("Nama Team: ").strip()
+    # map_ = input("Nama Map: ").strip()
+    # agents = [a.strip().lower() for a in input("5 Agent (pisah koma): ").split(',')]
+
+    # if len(agents)!=5 or any(a not in AGENT_ROLE_MAP for a in agents):
+    #     print("[ERROR] Input agent tidak valid.")
+    # elif team not in role_mean_dict:
+    #     print("[ERROR] Tim tidak ditemukan dalam data historis.")
+    # else:
+    #     x, role_raw_vec, sim_score = prepare_input(team, map_, agents)
+    #     pred = float(model.predict(x, verbose=0)[0,0])
+    #     # sigmoid sudah memastikan 0-1, tapi clip untuk safety
+    #     pred = np.clip(pred, 0, 1)
+
+    #     # Penalti untuk komposisi anomali
+    #     penalty = calculate_penalty(role_raw_vec)
+    #     adjusted_pred = np.clip(pred - penalty, 0, 1)
         
-        # Moderasi berdasarkan confidence
-        confidence = calculate_confidence(team, map_, sim_score)
-        moderated_pred = moderate_prediction(adjusted_pred, confidence)
+    #     # Moderasi berdasarkan confidence
+    #     confidence = calculate_confidence(team, map_, sim_score)
+    #     moderated_pred = moderate_prediction(adjusted_pred, confidence)
         
-        comp_desc = describe_composition(role_raw_vec)
+    #     comp_desc = describe_composition(role_raw_vec)
 
-        print(f"\nPrediksi Raw Model: {pred:.4f} ({pred*100:.2f}%)")
-        print(f"Penalti Komposisi: -{penalty:.4f}")
-        print(f"Prediksi Setelah Penalti: {adjusted_pred:.4f} ({adjusted_pred*100:.2f}%)")
-        print(f"Confidence Factor: {confidence:.4f}")
-        print(f"Prediksi Final (Moderated): {moderated_pred:.4f} ({moderated_pred*100:.2f}%)")
-        print(f"Komposisi Role: {comp_desc}")
-        print(f"Skor Kecocokan dengan Pola Historis Tim: {sim_score:.4f}")
+    #     print(f"\nPrediksi Raw Model: {pred:.4f} ({pred*100:.2f}%)")
+    #     print(f"Penalti Komposisi: -{penalty:.4f}")
+    #     print(f"Prediksi Setelah Penalti: {adjusted_pred:.4f} ({adjusted_pred*100:.2f}%)")
+    #     print(f"Confidence Factor: {confidence:.4f}")
+    #     print(f"Prediksi Final (Moderated): {moderated_pred:.4f} ({moderated_pred*100:.2f}%)")
+    #     print(f"Komposisi Role: {comp_desc}")
+    #     print(f"Skor Kecocokan dengan Pola Historis Tim: {sim_score:.4f}")
 
-        if sim_score > 0.8:
-            print("[INFO] Komposisi sangat cocok dengan pola historis.")
-        elif sim_score > 0.5:
-            print("[INFO] Komposisi cukup relevan, namun tidak identik.")
-        else:
-            print("[INFO] Komposisi berbeda jauh dari pola tim.")
+    #     if sim_score > 0.8:
+    #         print("[INFO] Komposisi sangat cocok dengan pola historis.")
+    #     elif sim_score > 0.5:
+    #         print("[INFO] Komposisi cukup relevan, namun tidak identik.")
+    #     else:
+    #         print("[INFO] Komposisi berbeda jauh dari pola tim.")
             
-        print("\nKombinasi Historis Terbaik Tim di Map Ini:")
-        try:
-            df_hist = pd.read_csv("valorant_dataset_all.csv")
-            df_hist["match_id"] = (
-                df_hist['Tournament'] + "_" + df_hist['Stage'] + "_" +
-                df_hist['Match Type'] + "_" + df_hist['Map'] + "_" + df_hist['Team']
-            )
-            # Filter hanya yang sesuai team dan map
-            df_filtered = df_hist[
-                (df_hist["Team"].str.lower() == team.lower()) &
-                (df_hist["Map"].str.lower() == map_.lower())
-            ]
+    #     print("\nKombinasi Historis Terbaik Tim di Map Ini:")
+    #     try:
+    #         df_hist = pd.read_csv(DATASET_PATH)
+    #         df_hist["match_id"] = (
+    #             df_hist['Tournament'] + "_" + df_hist['Stage'] + "_" +
+    #             df_hist['Match Type'] + "_" + df_hist['Map'] + "_" + df_hist['Team']
+    #         )
+    #         # Filter hanya yang sesuai team dan map
+    #         df_filtered = df_hist[
+    #             (df_hist["Team"].str.lower() == team.lower()) &
+    #             (df_hist["Map"].str.lower() == map_.lower())
+    #         ]
 
-            # Ambil kombinasi agent per match
-            combos = []
-            for _, group in df_filtered.groupby("match_id"):
-                if len(group) == 5:
-                    combo = tuple(sorted(group["Agent"].str.lower()))
-                    combos.append(combo)
+    #         # Ambil kombinasi agent per match
+    #         combos = []
+    #         for _, group in df_filtered.groupby("match_id"):
+    #             if len(group) == 5:
+    #                 combo = tuple(sorted(group["Agent"].str.lower()))
+    #                 combos.append(combo)
 
-            if combos:
-                from collections import Counter
-                counter = Counter(combos)
-                most_common_combo = counter.most_common(1)[0][0]
-                print(f"→ Kombinasi: {', '.join(most_common_combo).title()}")
-            else:
-                print("⚠️ Tidak ditemukan kombinasi historis untuk team & map ini.")
-        except Exception as e:
-            print(f"[ERROR] Tidak dapat memuat data historis: {e}")
+    #         if combos:
+    #             from collections import Counter
+    #             counter = Counter(combos)
+    #             most_common_combo = counter.most_common(1)[0][0]
+    #             print(f"→ Kombinasi: {', '.join(most_common_combo).title()}")
+    #         else:
+    #             print("⚠️ Tidak ditemukan kombinasi historis untuk team & map ini.")
+    #     except Exception as e:
+    #         print(f"[ERROR] Tidak dapat memuat data historis: {e}")

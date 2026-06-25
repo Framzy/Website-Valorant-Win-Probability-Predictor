@@ -13,6 +13,17 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.regularizers import l2
 from collections import defaultdict
 
+from pathlib import Path
+
+# BASE DIRECTORY
+
+BASE_DIR = Path(__file__).resolve().parent
+
+# DATASET
+
+DATASET_PATH = BASE_DIR / "dataset/valorant_dataset_all.csv"
+
+
 # Set seed
 random.seed(42)
 np.random.seed(42)
@@ -20,14 +31,34 @@ tf.random.set_seed(42)
 
 # Load data
 print("[INFO] Loading data...")
-df = pd.read_csv("valorant_dataset_all.csv")
+df = pd.read_csv(DATASET_PATH)
+
+print("\n========== DATASET CHECK ==========")
+
+dataset_agents = sorted(
+    df["Agent"]
+    .astype(str)
+    .str.lower()
+    .unique()
+)
+
+print(f"Total Agent Dataset : {len(dataset_agents)}")
+print(dataset_agents)
+
+print("===================================\n")
+
+print(
+    df[
+        ["Total Wins By Map", "Total Loss By Map"]
+    ].drop_duplicates().head(20)
+)
 
 # Agent-role mapping
 AGENT_ROLE_MAP = {
     **{a: "duelist" for a in ["iso", "jett", "raze", "reyna", "yoru", "neon", "phoenix", "waylay"]},
     **{a: "initiator" for a in ["skye", "sova", "breach", "fade", "kayo", "gekko", "tejo"]},
-    **{a: "controller" for a in ["brimstone", "omen", "viper", "astra", "harbor", "clove"]},
-    **{a: "sentinel" for a in ["killjoy", "cypher", "sage", "chamber", "deadlock", "vyse"]},
+    **{a: "controller" for a in ["brimstone", "omen", "viper", "astra", "harbor", "clove", "miks"]},
+    **{a: "sentinel" for a in ["killjoy", "cypher", "sage", "chamber", "deadlock", "vyse", "veto"]},
 }
 ROLE_ORDER = ["duelist", "initiator", "controller", "sentinel"]
 
@@ -52,16 +83,49 @@ df_grouped = df.groupby(group_cols).agg({
 # Filter: hanya match dengan tepat 5 agent (komposisi valid)
 df_grouped["agent_count"] = df_grouped["Agent"].apply(len)
 print(f"[INFO] Before agent filter: {len(df_grouped)} matches")
+
 df_grouped = df_grouped[df_grouped["agent_count"] == 5].reset_index(drop=True)
 print(f"[INFO] After agent filter (==5): {len(df_grouped)} matches")
 
+print("\n========== GROUPED CHECK ==========")
+
+grouped_agents = sorted({
+    agent.lower()
+    for agents in df_grouped["Agent"]
+    for agent in agents
+})
+
+print(f"Total Agent Grouped : {len(grouped_agents)}")
+print(grouped_agents)
+
+print("===================================\n")
+
 # Filter: total played >= 5
 df_grouped["Total Played"] = df_grouped["Total Wins By Map"] + df_grouped["Total Loss By Map"]
-df_grouped = df_grouped[df_grouped["Total Played"] >= 5].reset_index(drop=True)
-print(f"[INFO] After total played filter (>=5): {len(df_grouped)} matches")
+print(f"[INFO] After total played before: {len(df_grouped)} matches")
+print(
+    df_grouped["Total Played"]
+    .value_counts()
+    .sort_index()
+)
+print("\n===== TOTAL PLAYED STATS =====")
+
+print(df_grouped["Total Played"].describe())
+
+print("==============================")
+df_grouped = df_grouped[df_grouped["Total Played"] >= 4].reset_index(drop=True)
+print(f"[INFO] After total played filter (>=4): {len(df_grouped)} matches")
+print(
+    df_grouped["Total Played"]
+    .value_counts()
+    .sort_index()
+)
 
 # Winrate target
 df_grouped["Winrate"] = df_grouped["Total Wins By Map"] / df_grouped["Total Played"]
+
+print(df_grouped["Winrate"].describe())
+print(df_grouped["Winrate"].value_counts().head(20))
 
 # === FITUR BARU: Team overall winrate ===
 team_wr = df_grouped.groupby("Team")["Winrate"].mean().to_dict()
@@ -83,8 +147,44 @@ map_ohe = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
 team_encoded = team_ohe.fit_transform(df_grouped[["Team"]])
 map_encoded = map_ohe.fit_transform(df_grouped[["Map"]])
 unique_agents = sorted({a for lst in df_grouped["Agent"] for a in lst})
+
+unique_agents = sorted({
+    a.lower()
+    for lst in df_grouped["Agent"]
+    for a in lst
+})
+
+print("\n========== UNIQUE AGENTS ==========")
+
+print(f"Total Unique Agents : {len(unique_agents)}")
+print(unique_agents)
+
+missing_from_unique = sorted(
+    set(AGENT_ROLE_MAP.keys()) - set(unique_agents)
+)
+
+print("\nMissing From Unique:")
+print(missing_from_unique)
+
+print("===================================\n")
+
 mlb = MultiLabelBinarizer(classes=unique_agents)
+
 agent_matrix = mlb.fit_transform(df_grouped["Agent"])
+
+print("\n========== MLB CHECK ==========")
+
+print(f"Total MLB Classes : {len(mlb.classes_)}")
+print(sorted(mlb.classes_))
+
+missing_from_mlb = sorted(
+    set(AGENT_ROLE_MAP.keys()) - set(mlb.classes_)
+)
+
+print("\nMissing From MLB:")
+print(missing_from_mlb)
+
+print("===============================\n")
 
 # Role matrix
 role_matrix = np.vstack(df_grouped["Agent"].apply(get_role_vector))
@@ -214,16 +314,31 @@ print(f"[INFO] Gauge zones: Merah < {gauge_thresholds['p25']*100:.1f}% | "
 
 # Save
 print("\n[INFO] Saving model and artifacts...")
-model.save("jst_model.keras")
-joblib.dump(role_scaler, "role_scaler.pkl")
-joblib.dump(extra_scaler, "extra_scaler.pkl")
-joblib.dump(team_ohe, "team_ohe.pkl")
-joblib.dump(map_ohe, "map_ohe.pkl")
-joblib.dump(mlb, "mlb.pkl")
-joblib.dump(tim_role_hist, "role_mean_dict.pkl")
-joblib.dump(tim_map_role_hist, "role_map_mean_dict.pkl")
-joblib.dump(AGENT_ROLE_MAP, "agent_role_map.pkl")
-joblib.dump(team_wr, "team_wr_dict.pkl")
-joblib.dump(team_sample_count, "team_sample_count.pkl")
-joblib.dump(gauge_thresholds, "gauge_thresholds.pkl")  # ← NEW: projection layer
+# model.save("jst_model.keras")
+# joblib.dump(role_scaler, "role_scaler.pkl")
+# joblib.dump(extra_scaler, "extra_scaler.pkl")
+# joblib.dump(team_ohe, "team_ohe.pkl")
+# joblib.dump(map_ohe, "map_ohe.pkl")
+# joblib.dump(mlb, "mlb.pkl")
+# mlb_verify = joblib.load("mlb.pkl")
+
+# print("\n========== SAVED MLB CHECK ==========")
+
+# print(f"Saved MLB Classes : {len(mlb_verify.classes_)}")
+# print(sorted(mlb_verify.classes_))
+
+# missing_saved = sorted(
+#     set(AGENT_ROLE_MAP.keys()) - set(mlb_verify.classes_)
+# )
+
+# print("\nMissing After Save:")
+# print(missing_saved)
+
+# print("=====================================\n")
+# joblib.dump(tim_role_hist, "role_mean_dict.pkl")
+# joblib.dump(tim_map_role_hist, "role_map_mean_dict.pkl")
+# joblib.dump(AGENT_ROLE_MAP, "agent_role_map.pkl")
+# joblib.dump(team_wr, "team_wr_dict.pkl")
+# joblib.dump(team_sample_count, "team_sample_count.pkl")
+# joblib.dump(gauge_thresholds, "gauge_thresholds.pkl")
 print("[INFO] Done! All artifacts saved.")
