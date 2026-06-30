@@ -31,7 +31,6 @@ from training_v2.config import (
     AGENT_ROLE_MAP,
     CV_FOLDS,
     DATASET_PATH,
-    MINIMUM_MAPS_PLAYED,
     MODEL_DIR,
     RANDOM_STATE,
     ROLE_ORDER,
@@ -105,6 +104,8 @@ def aggregate_matches(
 
     log_section("AGGREGATE MATCHES")
 
+    before = len(df)
+
     group_columns = [
 
         "Tournament",
@@ -118,7 +119,17 @@ def aggregate_matches(
         "Team",
 
     ]
+    
+    df = df[
+    (df["Stage"] == "All Stages")
+    &
+    (df["Match Type"] == "All Match Types")
+    ].copy()
 
+    after = len(df)
+    log_info(f"Raw Rows        : {before}")
+    log_info(f"All Stages Rows : {after}")
+    
     grouped = (
 
         df.groupby(group_columns)
@@ -143,19 +154,6 @@ def aggregate_matches(
 
         .reset_index()
 
-    )
-
-    log_info(
-        f"Before Filter : {len(grouped)}"
-    )
-
-    grouped = grouped[
-        grouped["Total Maps Played"]
-        >= MINIMUM_MAPS_PLAYED
-    ].reset_index(drop=True)
-
-    log_info(
-        f"After Filter : {len(grouped)}"
     )
 
     return grouped

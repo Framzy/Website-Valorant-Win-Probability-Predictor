@@ -15,6 +15,10 @@ DATASET_PATH = (
     / "dataset"
     / "valorant_dataset_all.csv"
 )
+DATASET_DIR = (
+    BASE_DIR
+    / "dataset"
+)
 
 MODEL_DIR = BASE_DIR / "models"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
@@ -29,7 +33,6 @@ RANDOM_STATE = 42
 # DATASET
 # ==========================================================
 
-MINIMUM_MAPS_PLAYED = 2
 
 TRAIN_TEST_SPLIT = 0.20
 

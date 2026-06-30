@@ -82,9 +82,9 @@ def split_dataset(
 
 def build_agent_played_frequency(
     raw_df: pd.DataFrame,
+    tournament: str,
     team: str,
     map_name: str,
-    year: int | None = None,
 ) -> dict:
     """
     Build agent played frequency.
@@ -95,15 +95,16 @@ def build_agent_played_frequency(
     """
 
     mask = (
+        ( raw_df["Tournament"] == tournament)
+        &
         (raw_df["Team"] == team)
         &
         (raw_df["Map"] == map_name)
+        &
+        (raw_df["Stage"] == "All Stages")
+        &
+        (raw_df["Match Type"] == "All Match Types")
     )
-
-    if year is not None:
-        mask &= (
-            raw_df["Year"] == year
-        )
 
     subset = raw_df.loc[mask]
 
@@ -114,19 +115,36 @@ def build_agent_played_frequency(
         +
         subset["Total Loss By Map"]
     )
-
-    frequency = (
+    
+    summary = (
         subset
-        .groupby("Agent")["Agent Played"]
-        .sum()
-        .sort_values(ascending=False)
-        .to_dict()
+        .groupby("Agent")
+        .agg(
+            Played=("Agent Played", "sum"),
+            Wins=("Total Wins By Map", "sum"),
+            Losses=("Total Loss By Map", "sum"),
+        )
     )
 
-    return {
-        agent.lower(): int(total)
-        for agent, total in frequency.items()
-    }
+    frequency = {}
+
+    for agent, row in summary.iterrows():
+
+        frequency[agent.lower()] = {
+
+            "played": int(row["Played"]),
+
+            "wins": int(row["Wins"]),
+
+            "losses": int(row["Losses"]),
+
+        }
+        
+    from pprint import pprint
+
+    pprint(frequency)
+
+    return frequency
     
 def reconstruct_composition(
     frequency: dict[str, int]
@@ -180,16 +198,15 @@ def reconstruct_dataset(
 
         frequency = build_agent_played_frequency(
 
-            raw_df=raw_df,
+            raw_df = raw_df,
+
+            tournament=row["Tournament"],
 
             team=row["Team"],
 
             map_name=row["Map"],
-
-            year=row["Year"]
-
         )
-
+        
         composition = reconstruct_composition(
             frequency
         )
@@ -348,6 +365,15 @@ def main():
         dataset
     )
 
+    dataset = dataset.sort_values(
+        by=[
+            "Year",
+            "Tournament",
+            "Team",
+            "Map",
+        ]
+    )
+    
     save_dataset(
         dataset
     )
