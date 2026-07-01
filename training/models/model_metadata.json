@@ -1,0 +1,9 @@
+{
+    "model": "XGBRegressor",
+    "dataset_size": 1963,
+    "feature_count": 108,
+    "mae": 0.2482,
+    "cv_mean": 0.2467,
+    "cv_std": 0.0085,
+    "created_at": "2026-06-25T17:54:25.280842"
+}
