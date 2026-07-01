@@ -19,6 +19,11 @@ DATASET_DIR = (
     BASE_DIR
     / "dataset"
 )
+TEAM_DATASET_PATH = (
+    BASE_DIR
+    / "dataset"
+    / "valorant_dataset_team_v2.csv"
+)
 
 MODEL_DIR = BASE_DIR / "models"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
@@ -37,6 +42,15 @@ RANDOM_STATE = 42
 TRAIN_TEST_SPLIT = 0.20
 
 CV_FOLDS = 5
+
+FEATURE_COLUMNS = [
+    "Team",
+    "Map",
+    "Year",
+    "Agent",
+]
+
+TARGET_COLUMN = "Winrate"
 
 # ==========================================================
 # XGBOOST

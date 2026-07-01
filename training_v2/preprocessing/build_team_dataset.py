@@ -10,12 +10,15 @@ import pandas as pd
 from training_v2.config import DATASET_PATH
 from training_v2.config import DATASET_DIR
 from training_v2.training_utils import aggregate_matches
-from training_v2.preprocessing.composition_reconstruction import (
+from training_v2.preprocessing.composition_normalizer import (
     analyze_roles,
     calculate_role_distribution,
     allocate_role_slots,
     select_agents,
 )
+from pprint import pprint
+
+DEBUG = False
 
 
 def load_dataset() -> pd.DataFrame:
@@ -140,9 +143,8 @@ def build_agent_played_frequency(
 
         }
         
-    from pprint import pprint
-
-    pprint(frequency)
+    if DEBUG:
+        pprint(frequency)
 
     return frequency
     

@@ -28,6 +28,8 @@ ROLE_ORDER = [
     "sentinel",
 ]
 
+DEBUG = False
+
 def analyze_roles(
     agent_frequency: dict[str, int]
 ) -> dict:
@@ -106,12 +108,13 @@ def analyze_roles(
         
     from pprint import pprint
 
-    print()
-    print("=" * 60)
-    print("ROLE ANALYSIS")
-    print("=" * 60)
+    if DEBUG:
+        print()
+        print("=" * 60)
+        print("ROLE ANALYSIS")
+        print("=" * 60)
 
-    pprint(role_analysis)
+        pprint(role_analysis)
 
     return role_analysis
 
@@ -236,9 +239,7 @@ def allocate_role_slots(
         reverse=True
 
     )
-    
-    DEBUG = False
-    
+        
     if DEBUG:
     
         print("\nRemainders")
@@ -330,14 +331,15 @@ def select_agents(
 
         composition.extend(selected)
         
-        print()
-        print("=" * 60)
-        print(f"RANKING ({role})")
-        print("=" * 60)
+        if DEBUG:
+            print()
+            print("=" * 60)
+            print(f"RANKING ({role})")
+            print("=" * 60)
 
-        from pprint import pprint
+            from pprint import pprint
 
-        pprint(sorted_agents)
+            pprint(sorted_agents)
         
     if len(composition) != TARGET_COMPOSITION_SIZE:
 
